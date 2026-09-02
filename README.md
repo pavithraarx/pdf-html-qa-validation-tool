@@ -46,14 +46,17 @@ Automated QA validation for converted HTML documents against original PDF source
 
 <h2>Overview</h2>
 
+
+<hr>
+
 <h2>Demo</h2>
 
 <p>
-  A short demonstration of the PDF-to-HTML QA validation workflow.
+  Watch the demonstration of the PDF-to-HTML QA validation workflow.
 </p>
 
 <p>
-  <a href="./demo/demo-video.mp4">
+  <a href="./demo/qc_analysis_tool_demo.mp4">
     <strong>View Demo Video</strong>
   </a>
 </p>
