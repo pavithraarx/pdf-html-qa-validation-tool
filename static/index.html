@@ -1,2826 +1,338 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QA Tool - PDF to HTML Batch Checker</title>
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#f4f6f8;--s1:#ffffff;--s2:#f8fafc;--s3:#eef3f7;--s4:#f3f6fb;
-  --ink:#111827;--text:#253342;--muted:#627084;--dim:#9aa6b5;
-  --border:#d7dee8;--border2:#b7c4d6;
-  --accent:#2563eb;--accent2:#0f9f8f;--accent3:#7c3aed;
-  --accentg:linear-gradient(135deg,#2563eb 0%,#0f9f8f 58%,#14b8a6 100%);
-  --red:#dc2626;--orange:#b45309;--green:#15803d;--teal:#087f8c;
-  --shadow:0 18px 45px rgba(21,33,48,.09);--shadow2:0 8px 22px rgba(20,33,47,.07);
-  --r:8px;--r2:6px;
-  --font:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono','Courier New',monospace;
-}
-body{background:linear-gradient(180deg,#f9fbfd 0,#f4f6f8 260px,#eef2f5 100%);
-  color:var(--text);font-family:var(--font);min-height:100vh;
-  display:flex;flex-direction:column;overflow-x:hidden}
-body::before{
-  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
-  background:
-    linear-gradient(90deg,rgba(37,99,235,.045) 1px,transparent 1px),
-    linear-gradient(180deg,rgba(15,159,143,.04) 1px,transparent 1px);
-  background-size:42px 42px;
-  mask-image:linear-gradient(180deg,#000 0,transparent 58%);
-}
-header{
-  background:rgba(255,255,255,.92);
-  border-bottom:1px solid var(--border);
-  box-shadow:0 1px 20px rgba(22,34,49,.06);
-  backdrop-filter:blur(14px);
-  padding:0 32px;height:68px;
-  display:flex;align-items:center;justify-content:space-between;
-  position:sticky;top:0;z-index:100;
-}
-.logo{display:flex;align-items:center;gap:12px}
-.logo-icon{width:34px;height:34px;background:var(--accentg);border-radius:8px;
-  display:flex;align-items:center;justify-content:center;
-  box-shadow:0 10px 22px rgba(37,99,235,.24)}
-.logo h1{font-size:17px;font-weight:750;color:var(--ink);letter-spacing:0}
-.logo p{font-size:11px;color:var(--muted);margin-top:1px}
-.header-badge{
-  font-size:11px;background:#e8f7f4;color:#087f68;
-  border:1px solid #b7e5dc;border-radius:999px;
-  padding:6px 12px;font-weight:800;box-shadow:0 6px 14px rgba(15,159,143,.09);
-}
-main{display:flex;flex:1;min-height:0}
-aside{
-  width:374px;flex-shrink:0;
-  background:rgba(255,255,255,.86);border-right:1px solid var(--border);
-  display:flex;flex-direction:column;
-  overflow-y:auto;
-  box-shadow:14px 0 34px rgba(18,31,44,.035);
-}
-.aside-section{padding:20px 20px 0}
-.aside-section:last-child{padding-bottom:20px}
-.section-label{
-  font-size:10px;font-weight:700;letter-spacing:1px;
-  text-transform:uppercase;color:#526174;margin-bottom:12px;
-}
-.dropzone{
-  border:2px dashed var(--border2);border-radius:var(--r);
-  padding:24px 18px;text-align:left;cursor:pointer;
-  transition:border-color .2s,background .2s,transform .2s,box-shadow .2s;
-  position:relative;background:linear-gradient(180deg,#fff 0%,#fbfcfe 100%);
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.7),var(--shadow2);
-  display:grid;grid-template-columns:46px 1fr;column-gap:14px;align-items:center;
-}
-.dropzone:hover,.dropzone.drag{
-  border-color:var(--accent);background:#eef6ff;
-  transform:translateY(-1px);box-shadow:0 14px 28px rgba(37,99,235,.12);
-}
-.dropzone.drag{background:#eaf5ff}
-.dropzone input[type=file]{
-  position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;
-}
-.drop-icon{width:44px;height:44px;margin:0;
-  background:#e8f1ff;border-radius:8px;
-  display:flex;align-items:center;justify-content:center;grid-row:1 / 4}
-.dropzone h3{font-size:14px;font-weight:750;color:var(--ink);margin-bottom:4px}
-.dropzone p{font-size:12px;color:var(--muted)}
-.dropzone h3,.dropzone p{grid-column:2}
-.upload-stack{display:flex;flex-direction:column;gap:12px}
-.upload-count{
-  grid-column:2;margin-top:8px;font-size:11px;font-weight:800;color:var(--accent);
-  min-height:14px;
-}
-.prepare-btn{
-  width:100%;border:1px solid #c8dcfb;background:#eef6ff;color:var(--accent);
-  position:relative;z-index:10;pointer-events:auto;
-  border-radius:var(--r);padding:11px 12px;font-size:13px;font-weight:750;
-  cursor:pointer;margin-top:12px;transition:all .15s;box-shadow:0 8px 18px rgba(37,99,235,.08);
-}
-.prepare-btn:hover:not(:disabled){background:#e4f0ff;border-color:var(--accent);transform:translateY(-1px)}
-.prepare-btn:disabled{opacity:.45;cursor:not-allowed}
-.file-pairs{display:flex;flex-direction:column;gap:8px}
-.pair-card{
-  background:#fff;border:1px solid var(--border);
-  border-radius:var(--r2);padding:12px 14px;
-  display:flex;align-items:center;gap:10px;
-  box-shadow:var(--shadow2);transition:transform .15s,border-color .15s,box-shadow .15s;
-}
-.pair-card:hover{transform:translateY(-1px);border-color:#c3d1e3;box-shadow:0 12px 26px rgba(20,33,47,.09)}
-.pair-icons{display:flex;flex-direction:column;gap:3px;flex-shrink:0}
-.file-chip{
-  font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;
-  display:inline-block;letter-spacing:.5px;
-}
-.pdf-chip{background:#fdeaea;color:#bf3030}
-.html-chip{background:#e8f1ff;color:#1b5bbd}
-.pair-name{font-size:12px;font-weight:600;flex:1;min-width:0;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pair-remove{
-  width:26px;height:26px;background:#f8fafc;border:1px solid transparent;color:var(--muted);
-  cursor:pointer;font-size:16px;line-height:1;padding:0;border-radius:6px;
-  transition:all .15s;display:grid;place-items:center;
-}
-.pair-remove:hover{color:var(--red);background:#fff1f2;border-color:#fecdd3}
-.unmatched-section{margin-top:12px}
-.unmatched-label{font-size:11px;color:var(--orange);font-weight:600;margin-bottom:6px}
-.unmatched-item{font-size:11px;color:var(--muted);padding:2px 0;
-  font-family:var(--mono)}
-.run-btn{
-  background:var(--accentg);border:none;border-radius:var(--r);
-  color:#fff;cursor:pointer;font-size:14px;font-weight:700;
-  padding:14px;width:100%;display:flex;align-items:center;
-  justify-content:center;gap:8px;transition:opacity .15s,transform .1s;
-  margin-top:4px;letter-spacing:0;box-shadow:0 16px 30px rgba(37,99,235,.28);
-}
-.run-btn:hover:not(:disabled){opacity:.9;transform:translateY(-1px)}
-.run-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
-.results{flex:1;overflow-y:auto;padding:30px 34px;display:flex;flex-direction:column;gap:20px}
-.empty{
-  flex:1;display:grid;place-items:center;
-  color:var(--muted);text-align:left;
-  min-height:400px;
-}
-.empty-panel{
-  width:min(760px,100%);background:#fff;border:1px solid var(--border);
-  border-radius:var(--r);box-shadow:var(--shadow);padding:30px;
-  display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center;
-  position:relative;overflow:hidden;
-}
-.empty-panel::before{content:"";position:absolute;inset:0 0 auto;height:4px;background:var(--accentg)}
-.empty svg{opacity:1}
-.empty h2{font-size:24px;color:var(--ink);font-weight:780;margin-bottom:8px}
-.empty p{font-size:14px;max-width:480px;line-height:1.6}
-.empty-stats{grid-column:1 / -1;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:4px}
-.stat{background:var(--s2);border:1px solid var(--border);border-radius:var(--r2);padding:12px}
-.stat strong{display:block;color:var(--ink);font-size:18px;margin-bottom:2px}
-.stat span{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.6px}
-.job-card{
-  background:var(--s1);border:1px solid var(--border);
-  border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);
-  animation:fadeUp .25s ease;
-}
-@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
-.job-header{
-  padding:16px 20px;display:flex;align-items:center;gap:14px;
-  border-bottom:1px solid var(--border);cursor:pointer;
-  transition:background .15s;
-  background:linear-gradient(180deg,#fff,#fbfcfe);
-}
-.job-header:hover{background:#f8fafc}
-.job-filename{
-  flex:1;min-width:0;
-}
-.job-filename h3{font-size:14px;font-weight:600;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.job-filename p{font-size:11px;color:var(--muted);margin-top:2px}
-.job-badges{display:flex;gap:6px;align-items:center;flex-shrink:0}
-.badge{
-  font-size:11px;font-weight:700;padding:4px 10px;
-  border-radius:20px;display:flex;align-items:center;gap:4px;
-  border:1px solid transparent;white-space:nowrap;
-}
-.badge.error{background:#fef2f2;color:var(--red);border-color:#fecaca}
-.badge.warning{background:#fff7ed;color:var(--orange);border-color:#fed7aa}
-.badge.ok{background:#ecfdf5;color:var(--green);border-color:#bbf7d0}
-.badge.lang{background:#e8f7f4;color:var(--teal);font-size:10px;border-color:#b7e5dc}
-.badge.id{background:#eff6ff;color:var(--accent);font-size:10px;border-color:#bfdbfe}
-.dl-btn{
-  background:#eef6ff;border:1px solid #c8dcfb;
-  color:var(--accent);border-radius:6px;padding:6px 12px;
-  font-size:12px;font-weight:600;cursor:pointer;
-  display:flex;align-items:center;gap:5px;transition:all .15s;white-space:nowrap;
-}
-.dl-btn:hover{background:#dbeafe;border-color:var(--accent);transform:translateY(-1px)}
-.job-progress{padding:14px 20px}
-.prog-bar-bg{height:4px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:8px}
-.prog-bar{height:100%;background:var(--accentg);border-radius:99px;transition:width .3s ease}
-.prog-label{font-size:12px;color:var(--muted)}
-.job-body{padding:0 20px 16px;display:none}
-.job-body.open{display:block}
-.filter-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;padding-top:16px}
-.chip{
-  font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;
-  border:1.5px solid var(--border);color:var(--muted);background:transparent;
-  cursor:pointer;transition:all .15s;
-}
-.chip:hover{border-color:var(--accent);color:var(--text)}
-.chip.on{border-color:var(--accent);background:#eff6ff;color:var(--accent);box-shadow:0 6px 14px rgba(37,99,235,.08)}
-.table-scroll{overflow:auto;border:1px solid var(--border);border-radius:var(--r2);box-shadow:inset 0 1px 0 rgba(255,255,255,.7)}
-.issue-table{width:100%;border-collapse:collapse;font-size:12px;background:#fff}
-.issue-table th{
-  text-align:left;font-size:10px;font-weight:700;letter-spacing:.6px;
-  text-transform:uppercase;color:var(--muted);
-  padding:10px;border-bottom:1px solid var(--border);background:#f8fafc;
-  position:sticky;top:0;z-index:1;
-}
-.issue-table td{
-  padding:10px;border-bottom:1px solid var(--border);
-  vertical-align:top;line-height:1.45;
-}
-.issue-table tr:last-child td{border-bottom:none}
-.issue-table tr:hover td{background:#fbfcfe}
-.issue-table .sev-error{color:var(--red);font-weight:700}
-.issue-table .sev-warning{color:var(--orange);font-weight:700}
-.issue-table .line-num{font-family:var(--mono);color:var(--accent);font-size:11px}
-.issue-table .snippet{
-  font-family:var(--mono);font-size:10px;color:var(--muted);
-  white-space:pre-wrap;word-break:break-word;
-  max-height:60px;overflow:hidden;
-}
-.no-issues{
-  padding:24px;text-align:center;color:var(--green);font-size:13px;font-weight:700;
-  background:#ecfdf5;border:1px solid #bbf7d0;border-radius:var(--r2);
-}
-.empty-category{
-  padding:18px;text-align:center;color:var(--muted);font-size:12px;
-  background:var(--s2);border:1px solid var(--border);border-radius:var(--r2);
-}
-.expand-snippet{
-  color:var(--accent);font-size:10px;cursor:pointer;background:none;border:none;
-  padding:0;margin-top:3px;display:block;
-}
-button:focus-visible,.dropzone:focus-within{outline:3px solid rgba(37,99,235,.24);outline-offset:2px}
-@keyframes spin{to{transform:rotate(360deg)}}
-.spin{animation:spin .9s linear infinite;display:inline-block}
-::-webkit-scrollbar{width:5px;height:5px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
-@media (max-width: 820px){
-  header{padding:0 18px}
-  main{flex-direction:column}
-  aside{width:100%;border-right:none;border-bottom:1px solid var(--border);max-height:none}
-  .results{padding:20px}
-  .empty-panel{grid-template-columns:1fr;text-align:center;padding:22px}
-  .empty-stats{grid-template-columns:1fr}
-  .job-header{align-items:flex-start;flex-direction:column}
-  .job-badges{flex-wrap:wrap}
-}
-@media (max-width: 520px){
-  header{height:auto;min-height:68px;padding:12px 16px;gap:12px;align-items:flex-start}
-  .header-badge{display:none}
-  .logo h1{font-size:15px}
-  .dropzone{grid-template-columns:40px 1fr;padding:18px 14px}
-  .drop-icon{width:38px;height:38px}
-  .aside-section{padding-left:16px;padding-right:16px}
-  .results{padding:16px}
-  .job-card{border-radius:6px}
-  .job-header{padding:14px}
-  .job-body{padding:0 14px 14px}
-}
-.file-row:hover {
-  background: rgba(255,255,255,0.04);
-}
-
-.file-detail-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.meta-chip {
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid var(--border);
-  color: var(--text);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.file-detail-page {
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
-}
-
-.file-detail-header {
-  padding: 20px 22px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-}
-
-.file-detail-title h2 {
-  margin: 12px 0 4px;
-  font-size: 18px;
-  font-weight: 900;
-  color: var(--text);
-}
-
-.file-detail-title p {
-  margin: 0;
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.back-btn,
-.file-download-btn {
-  border: 1px solid #bfdbfe;
-  background: #eff6ff;
-  color: #1d4ed8;
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 12px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.file-download-btn {
-  background: #2563eb;
-  color: white;
-  border-color: #2563eb;
-}
-
-.file-meta-row {
-  padding: 14px 22px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  border-bottom: 1px solid var(--border);
-  background: #f8fafc;
-}
-
-.meta-chip {
-  padding: 7px 10px;
-  border-radius: 999px;
-  border: 1px solid #cbd5e1;
-  background: #fff;
-  color: #0f172a;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.meta-chip.critical {
-  border-color: #fecaca;
-  background: #fef2f2;
-  color: #dc2626;
-}
-
-.meta-chip.major {
-  border-color: #fed7aa;
-  background: #fff7ed;
-  color: #ea580c;
-}
-
-.meta-chip.minor {
-  border-color: #bfdbfe;
-  background: #eff6ff;
-  color: #2563eb;
-}
-
-.file-name-box {
-  margin: 16px 22px;
-  padding: 14px;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-  border-radius: 12px;
-  font-size: 13px;
-  color: #475569;
-  line-height: 1.7;
-}
-
-.file-name-box strong {
-  color: #0f172a;
-}
-
-.detail-filter-row {
-  padding: 0 22px 16px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.detail-filter-chip {
-  border: 1px solid #cbd5e1;
-  background: #fff;
-  color: #334155;
-  border-radius: 999px;
-  padding: 7px 12px;
-  font-size: 12px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.detail-filter-chip.active {
-  background: #0f172a;
-  border-color: #0f172a;
-  color: white;
-}
-
-.issue-list {
-  padding: 0 22px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.issue-card {
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  background: #fff;
-  overflow: hidden;
-}
-
-.issue-card-head {
-  display: grid;
-  grid-template-columns: 52px 1fr auto auto;
-  gap: 12px;
-  align-items: center;
-  padding: 14px 16px;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.issue-no {
-  font-size: 13px;
-  font-weight: 900;
-  color: #64748b;
-}
-
-.issue-type {
-  font-size: 14px;
-  font-weight: 900;
-  color: #0f172a;
-}
-
-.issue-line {
-  font-size: 12px;
-  font-weight: 800;
-  color: #475569;
-  background: #fff;
-  border: 1px solid #cbd5e1;
-  border-radius: 999px;
-  padding: 5px 9px;
-}
-
-.issue-card-body {
-  padding: 16px;
-}
-
-.issue-desc {
-  font-family: Inter, system-ui, sans-serif;
-  font-size: 13.5px;
-  line-height: 1.65;
-  color: #0f172a;
-  margin-bottom: 14px;
-}
-
-.issue-compare-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.compare-box {
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-  border-radius: 10px;
-  padding: 12px;
-  min-width: 0;
-}
-
-.compare-label {
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #64748b;
-  margin-bottom: 6px;
-}
-
-.compare-value {
-  font-size: 13px;
-  line-height: 1.55;
-  color: #0f172a;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-.excerpt-box {
-  border: 1px solid #e2e8f0;
-  background: #0f172a;
-  color: #e2e8f0;
-  border-radius: 10px;
-  padding: 12px;
-  font-size: 12px;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  max-height: 220px;
-  overflow: auto;
-}
-
-@media (max-width: 900px) {
-  .file-detail-header {
-    flex-direction: column;
-  }
-
-  .issue-card-head {
-    grid-template-columns: 42px 1fr;
-  }
-
-  .issue-compare-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.open-report-btn {
-  border: none;
-  border-radius: 999px;
-  padding: 8px 14px;
-  font-size: 12px;
-  font-weight: 900;
-  color: #ffffff;
-  cursor: pointer;
-  background: linear-gradient(135deg, #2563eb, #06b6d4);
-  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
-  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
-  white-space: nowrap;
-}
-
-.open-report-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.28);
-}
-
-.open-report-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
-  box-shadow: none;
-}
-
-.qa-expandable {
-  white-space: pre-wrap;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-  line-height: 1.5;
-}
-
-.qa-show-more-btn {
-  margin-top: 6px;
-  border: none;
-  background: transparent;
-  color: var(--accent);
-  font-size: 11px;
-  font-weight: 800;
-  cursor: pointer;
-  padding: 0;
-}
-
-.qa-show-more-btn:hover {
-  text-decoration: underline;
-}
-
-/* Final fixed per-file QA table */
-.detail-table-wrap {
-  width: 100%;
-  overflow-x: auto;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: #fff;
-}
-
-.detail-table {
-  width: 100%;
-  min-width: 1450px;
-  table-layout: fixed;
-  border-collapse: collapse;
-  background: #fff;
-  font-size: 12.5px;
-}
-
-.detail-table th {
-  padding: 12px 12px;
-  text-align: left;
-  background: #f8fafc;
-  border-bottom: 1px solid var(--border);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.7px;
-  color: var(--muted);
-  font-weight: 850;
-  white-space: nowrap;
-}
-
-.detail-table td {
-  padding: 14px 12px;
-  border-bottom: 1px solid var(--border);
-  vertical-align: top;
-  line-height: 1.55;
-  color: #172033;
-}
-
-.detail-table tr:hover td {
-  background: #fbfcfe;
-}
-
-.col-no { width: 52px; }
-.col-type { width: 170px; }
-.col-severity { width: 105px; }
-.col-line { width: 85px; }
-.col-desc { width: 300px; }
-.col-expected { width: 230px; }
-.col-actual { width: 230px; }
-.col-excerpt { width: 360px; }
-
-.desc-cell,
-.expected-cell,
-.actual-cell,
-.snippet-cell {
-  font-family: var(--font);
-  font-size: 12.5px;
-  line-height: 1.55;
-  color: #172033;
-  white-space: normal;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-}
-
-.snippet-cell {
-  color: #334155;
-}
-
-.qa-expandable {
-  white-space: pre-wrap;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-  line-height: 1.55;
-  max-width: 100%;
-}
-
-.qa-show-more-btn {
-  margin-top: 7px;
-  border: none;
-  background: transparent;
-  color: var(--accent);
-  font-size: 11px;
-  font-weight: 850;
-  cursor: pointer;
-  padding: 0;
-}
-
-.qa-show-more-btn:hover {
-  text-decoration: underline;
-}
-
-.line-num {
-  font-family: var(--font);
-  font-size: 12px;
-  font-weight: 850;
-  color: var(--accent);
-}
-
-/* Cleaner per-file QA table */
-.detail-table {
-  width: 100%;
-  min-width: 1180px;
-  table-layout: fixed;
-  border-collapse: collapse;
-  background: #fff;
-  font-size: 12.5px;
-}
-
-.detail-table th,
-.detail-table td {
-  padding: 13px 14px;
-  border-bottom: 1px solid var(--border);
-  vertical-align: top;
-}
-
-.col-no { width: 52px; }
-.col-type { width: 180px; }
-.col-severity { width: 105px; }
-.col-line { width: 90px; }
-.col-desc { width: 340px; }
-.col-expected { width: 205px; }
-.col-actual { width: 205px; }
-.col-details { width: 110px; }
-
-.desc-cell,
-.expected-cell,
-.actual-cell {
-  font-family: var(--font);
-  font-size: 12.5px;
-  line-height: 1.55;
-  color: #172033;
-  white-space: normal;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-}
-
-.details-btn {
-  border: 1px solid #bfdbfe;
-  background: #eff6ff;
-  color: #1d4ed8;
-  border-radius: 999px;
-  padding: 6px 10px;
-  font-size: 11px;
-  font-weight: 850;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.details-btn:hover {
-  background: #dbeafe;
-  border-color: #2563eb;
-}
-
-.issue-extra-row {
-  display: none;
-}
-
-.issue-extra-row.open {
-  display: table-row;
-}
-
-.issue-extra-cell {
-  padding: 0 !important;
-  background: #f8fafc !important;
-}
-
-.issue-extra-box {
-  margin: 0;
-  padding: 16px 18px;
-  border-left: 4px solid var(--accent);
-  background: #f8fafc;
-}
-
-.issue-extra-title {
-  font-size: 11px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #64748b;
-  margin-bottom: 8px;
-}
-
-.issue-extra-content {
-  font-family: var(--font);
-  font-size: 12.5px;
-  line-height: 1.65;
-  color: #172033;
-  white-space: pre-wrap;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-  max-height: 260px;
-  overflow: auto;
-  background: #ffffff;
-  border: 1px solid #dbe3ee;
-  border-radius: 10px;
-  padding: 12px;
-}
-
-.qa-short-text {
-  font-family: var(--font);
-  font-size: 12.5px;
-  line-height: 1.55;
-  color: #172033;
-  white-space: normal;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-}
-
-/* ── Batch dashboard result view ───────────────────────────────────────── */
-.batch-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;animation:fadeUp .25s ease}
-.batch-top{padding:18px 20px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,#fff,#fbfcfe);display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
-.batch-title h2{font-size:18px;color:var(--ink);font-weight:800;margin-bottom:4px}
-.batch-title p{font-size:12px;color:var(--muted)}
-.batch-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
-.batch-stats{display:grid;grid-template-columns:repeat(6,minmax(95px,1fr));gap:10px;padding:16px 20px;border-bottom:1px solid var(--border);background:#fff}
-.batch-stat{background:var(--s2);border:1px solid var(--border);border-radius:var(--r2);padding:12px 12px;min-width:0}
-.batch-stat strong{display:block;font-size:20px;color:var(--ink);font-weight:850;line-height:1;margin-bottom:6px}
-.batch-stat span{font-size:10px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.6px}
-.batch-stat.critical{background:#fff5f5;border-color:#fecaca}.batch-stat.critical strong{color:var(--red)}
-.batch-stat.major{background:#fffbeb;border-color:#fed7aa}.batch-stat.major strong{color:var(--orange)}
-.batch-stat.minor{background:#eff6ff;border-color:#bfdbfe}.batch-stat.minor strong{color:var(--accent)}
-.batch-filter-row{padding:14px 20px;display:flex;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--border);background:#fbfcfe}
-.file-table-wrap{overflow:auto}
-.file-table{width:100%;border-collapse:collapse;background:#fff;font-size:12px}
-.file-table th{padding:12px 14px;text-align:left;background:#f8fafc;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);font-weight:800;white-space:nowrap}
-.file-table td{padding:13px 14px;border-bottom:1px solid var(--border);vertical-align:middle;line-height:1.45}
-.file-table tr.file-row{cursor:pointer;transition:background .12s}
-.file-table tr.file-row:hover td{background:#fbfcfe}
-.file-table tr.file-row.active td{background:#eff6ff}
-.file-pair-name{font-weight:750;color:var(--ink);max-width:520px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.file-pair-sub{font-size:11px;color:var(--muted);margin-top:2px;max-width:520px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.status-pill,.severity-pill{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:5px 10px;font-size:11px;font-weight:850;line-height:1;border:1px solid transparent;white-space:nowrap}
-.status-pill.passed{background:#ecfdf5;color:var(--green);border-color:#bbf7d0}.status-pill.failed{background:#fff1f2;color:var(--red);border-color:#fecaca}.status-pill.running{background:#eff6ff;color:var(--accent);border-color:#bfdbfe}.status-pill.queued{background:#f8fafc;color:var(--muted);border-color:var(--border)}
-.severity-pill.critical{background:#fef2f2;color:var(--red);border-color:#fecaca}.severity-pill.major{background:#fff7ed;color:var(--orange);border-color:#fed7aa}.severity-pill.minor{background:#eff6ff;color:var(--accent);border-color:#bfdbfe}.severity-pill.passed{background:#ecfdf5;color:var(--green);border-color:#bbf7d0}
-.progress-inline{font-size:11px;color:var(--muted);font-family:var(--mono)}
-.detail-cell{padding:0!important;background:#fff!important}
-.detail-panel{padding:18px 20px 20px;border-left:4px solid var(--accent);background:linear-gradient(180deg,#fff,#fbfcfe)}
-.detail-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:14px}
-.detail-title h3{font-size:16px;color:var(--ink);font-weight:850;margin-bottom:4px}
-.detail-title p{font-size:12px;color:var(--muted);line-height:1.5}
-.tag-row{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
-.info-tag{font-size:11px;font-weight:750;border-radius:999px;border:1px solid var(--border);background:#fff;color:var(--text);padding:5px 10px}
-.info-tag.critical{background:#fef2f2;color:var(--red);border-color:#fecaca}.info-tag.major{background:#fff7ed;color:var(--orange);border-color:#fed7aa}.info-tag.minor{background:#eff6ff;color:var(--accent);border-color:#bfdbfe}.info-tag.ok{background:#ecfdf5;color:var(--green);border-color:#bbf7d0}
-.detail-filters{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
-.detail-table-wrap{overflow:auto;border:1px solid var(--border);border-radius:var(--r2);background:#fff}
-.detail-table{width:100%;border-collapse:collapse;font-size:12px;min-width:980px;background:#fff}
-.detail-table th{padding:10px;background:#f8fafc;border-bottom:1px solid var(--border);font-size:10px;text-align:left;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);font-weight:850;white-space:nowrap}
-.detail-table td{padding:10px;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.5}
-.detail-table tr:hover td{background:#fbfcfe}
-.desc-cell{font-family:var(--font);font-size:12.5px;color:#1f2937;min-width:250px}
-.expected-cell,.actual-cell{font-family:var(--mono);font-size:11px;color:#334155;white-space:pre-wrap;max-width:280px;min-width:160px}
-.snippet-cell{font-family:var(--mono);font-size:11px;color:#475569;white-space:pre-wrap;max-width:320px;min-width:220px}
-.no-issues-panel{padding:18px;border:1px solid #bbf7d0;background:#ecfdf5;color:var(--green);border-radius:var(--r2);font-weight:800;font-size:13px}
-@media(max-width:1100px){.batch-stats{grid-template-columns:repeat(3,1fr)}aside{width:330px}.file-table{min-width:720px}}
-
-
-.collapsed-excerpt{max-height:72px;overflow:hidden;}
-
-
-/* ================= FINAL QA UI FIXES: ETA, row status colors, clean details ================= */
-.batch-progress-box {
-  padding: 14px 20px;
-  background: #f8fafc;
-  border-bottom: 1px solid var(--border);
-}
-.batch-progress-top {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: center;
-  margin-bottom: 8px;
-  font-size: 12px;
-}
-.batch-progress-top strong { color: #0f172a; font-size: 13px; }
-.batch-progress-top span { color: #475569; font-weight: 800; }
-.batch-progress-track {
-  height: 9px;
-  background: #e2e8f0;
-  border-radius: 999px;
-  overflow: hidden;
-}
-.batch-progress-fill {
-  height: 100%;
-  background: linear-gradient(135deg, #2563eb, #0f9f8f);
-  border-radius: 999px;
-  transition: width 0.35s ease;
-}
-.batch-progress-meta {
-  display: flex;
-  gap: 14px;
-  flex-wrap: wrap;
-  margin-top: 8px;
-  font-size: 11px;
-  color: #64748b;
-  font-weight: 750;
-}
-.file-row.row-critical td { background: #fff1f2 !important; }
-.file-row.row-major td { background: #fff7ed !important; }
-.file-row.row-minor td { background: #eff6ff !important; }
-.file-row.row-passed td { background: #ecfdf5 !important; }
-.file-row.row-running td { background: #f0f9ff !important; }
-.file-row.row-error td { background: #fef2f2 !important; }
-.file-row:hover td { filter: brightness(0.985); }
-.open-report-btn.open-ready { background: linear-gradient(135deg, #2563eb, #06b6d4); }
-.open-report-btn.open-running { background: linear-gradient(135deg, #0ea5e9, #14b8a6); }
-.open-report-btn.open-error { background: linear-gradient(135deg, #dc2626, #f97316); }
-.open-report-btn.open-waiting { background: #94a3b8; box-shadow: none; }
-.detail-table { min-width: 1180px !important; table-layout: fixed !important; }
-.col-no { width: 52px; }
-.col-type { width: 180px; }
-.col-severity { width: 105px; }
-.col-line { width: 90px; }
-.col-desc { width: 340px; }
-.col-expected { width: 205px; }
-.col-actual { width: 205px; }
-.col-details { width: 120px; }
-.desc-cell, .expected-cell, .actual-cell {
-  font-family: var(--font) !important;
-  font-size: 12.5px !important;
-  line-height: 1.55 !important;
-  color: #172033 !important;
-  white-space: normal !important;
-  word-break: break-word !important;
-  overflow-wrap: anywhere !important;
-}
-.qa-short-text {
-  font-family: var(--font);
-  font-size: 12.5px;
-  line-height: 1.55;
-  color: #172033;
-  white-space: normal;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-}
-.details-btn {
-  border: 1px solid #bfdbfe;
-  background: #eff6ff;
-  color: #1d4ed8;
-  border-radius: 999px;
-  padding: 6px 10px;
-  font-size: 11px;
-  font-weight: 850;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.details-btn:hover { background: #dbeafe; border-color: #2563eb; }
-.issue-extra-row { display: none; }
-.issue-extra-row.open { display: table-row; }
-.issue-extra-cell { padding: 0 !important; background: #f8fafc !important; }
-.issue-extra-box { margin: 0; padding: 16px 18px; border-left: 4px solid var(--accent); background: #f8fafc; }
-.issue-extra-title { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; margin-bottom: 8px; }
-.issue-extra-content {
-  font-family: var(--font);
-  font-size: 12.5px;
-  line-height: 1.65;
-  color: #172033;
-  white-space: pre-wrap;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-  max-height: 260px;
-  overflow: auto;
-  background: #ffffff;
-  border: 1px solid #dbe3ee;
-  border-radius: 10px;
-  padding: 12px;
-}
-
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Source to HTML QA Tool</title>
+  <style>
+    :root{
+      --bg:#f5f7fb;--card:#ffffff;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;
+      --blue:#2563eb;--blue2:#1d4ed8;--green:#16a34a;--red:#dc2626;--orange:#ea580c;--yellow:#ca8a04;
+      --shadow:0 22px 50px rgba(15,23,42,.10);--soft:0 10px 24px rgba(15,23,42,.07);
+    }
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+    button,input,select{font:inherit} button{cursor:pointer} .hidden{display:none!important}
+    .auth-shell{min-height:100vh;display:grid;place-items:center;padding:42px;background:
+      radial-gradient(circle at 8% 8%,#dbeafe 0,#eef6ff 28%,transparent 48%),
+      radial-gradient(circle at 95% 88%,#ccfbf1 0,transparent 38%),
+      linear-gradient(135deg,#f8fafc,#eef2ff)}
+    .auth-card{width:min(980px,96vw);min-height:560px;background:rgba(255,255,255,.96);border:1px solid rgba(203,213,225,.95);box-shadow:var(--shadow);border-radius:30px;padding:0;display:grid;grid-template-columns:1fr 1.05fr;overflow:hidden}
+    .auth-visual{background:linear-gradient(145deg,#0f172a,#1d4ed8);color:white;padding:46px;display:flex;flex-direction:column;justify-content:space-between}
+    .auth-visual h1{font-size:42px;line-height:1.05;margin:18px 0 12px;letter-spacing:-.04em}.auth-visual p{color:#dbeafe;line-height:1.6;margin:0;font-size:15px}
+    .auth-visual-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.auth-info{border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.10);border-radius:18px;padding:14px;font-size:12px;color:#e0f2fe}.auth-info b{display:block;color:white;margin-bottom:5px}
+    .auth-form{padding:46px 48px;display:flex;flex-direction:column;justify-content:center}.auth-form h1{font-size:34px;line-height:1.1;margin:20px 0 8px;letter-spacing:-.035em}.auth-form p{color:var(--muted);margin:0 0 26px;line-height:1.55}
+    .brand-badge{display:inline-flex;align-items:center;gap:8px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:999px;padding:8px 12px;font-weight:900;font-size:12px;letter-spacing:.02em;width:max-content}
+    .field{margin:18px 0}.field label{display:block;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#475569;margin-bottom:8px}
+    .input{width:100%;border:1px solid #cbd5e1;border-radius:16px;padding:16px 16px;background:#fff;outline:none;font-size:15px}.input:focus{border-color:#60a5fa;box-shadow:0 0 0 4px #dbeafe}
+    .primary{background:linear-gradient(135deg,var(--blue),#7c3aed);color:white;border:0;border-radius:16px;padding:16px 20px;font-weight:950;box-shadow:0 14px 24px rgba(37,99,235,.24)}
+    .secondary{background:#fff;color:#0f172a;border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-weight:850}.ghost{background:transparent;border:0;color:#2563eb;font-weight:850}
+    .danger{background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:12px;padding:10px 14px;font-weight:850}
+    .error{background:#fef2f2;color:#991b1b;border:1px solid #fecaca;padding:10px 12px;border-radius:12px;margin-top:12px;font-size:13px}.hint{font-size:12px;color:#64748b;line-height:1.5}.rules{background:#f8fafc;border:1px dashed #cbd5e1;border-radius:14px;padding:12px 14px;margin:14px 0;color:#475569;font-size:12px;line-height:1.55}
+
+    .app{min-height:100vh}.topbar{height:66px;background:rgba(255,255,255,.88);backdrop-filter:blur(14px);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 22px;position:sticky;top:0;z-index:10}
+    .logo{display:flex;align-items:center;gap:12px;font-weight:950}.logo-mark{width:36px;height:36px;border-radius:12px;background:linear-gradient(135deg,#2563eb,#7c3aed);box-shadow:0 10px 20px rgba(37,99,235,.24)}
+    .user-pill{display:flex;align-items:center;gap:12px;background:#f8fafc;border:1px solid var(--line);padding:8px 10px;border-radius:999px;font-size:12px}.user-pill b{display:block}.user-pill span{color:var(--muted)}
+    .layout{display:flex;min-height:calc(100vh - 66px)}.sidebar{width:250px;background:#0f172a;color:#cbd5e1;padding:18px 14px;position:sticky;top:66px;height:calc(100vh - 66px)}
+    .side-title{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8;margin:10px 10px 14px}.side-btn{width:100%;display:flex;align-items:center;gap:10px;background:transparent;border:0;color:#cbd5e1;padding:12px;border-radius:13px;text-align:left;font-weight:850;margin:3px 0}.side-btn:hover,.side-btn.active{background:#1e293b;color:white}
+    .main{flex:1;padding:24px;max-width:1400px;margin:0 auto;width:100%}.page-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:18px}.page-head h1{margin:0;font-size:26px}.page-head p{margin:6px 0 0;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:14px;margin:16px 0}.stat{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--soft)}.stat small{color:var(--muted);font-weight:850}.stat b{display:block;font-size:26px;margin-top:8px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--soft);padding:20px;margin:16px 0}.card h2{margin:0 0 12px;font-size:18px}.tabs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 24px;background:#eef2ff;border:1px solid #dbeafe;border-radius:18px;padding:6px}.tab{background:transparent;border:0;border-radius:14px;padding:13px 16px;font-weight:950;color:#334155}.tab.active{background:#fff;color:#0f172a;border-color:#fff;box-shadow:0 8px 20px rgba(15,23,42,.10)}
+    .upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.upload-box{border:1px dashed #cbd5e1;background:#f8fafc;border-radius:18px;padding:18px}.upload-box h3{margin:0 0 8px}.upload-box input{width:100%;margin-top:8px}
+    table{width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;border:1px solid var(--line);border-radius:16px;background:#fff}th{background:#f8fafc;color:#475569;font-size:12px;text-transform:uppercase;letter-spacing:.04em;text-align:left;padding:12px;border-bottom:1px solid var(--line)}td{padding:12px;border-bottom:1px solid #eef2f7;vertical-align:top;font-size:13px}tr:last-child td{border-bottom:0}tr:hover td{background:#fbfdff}
+    .table-scroll{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:16px}
+    .report-table{table-layout:fixed;min-width:1100px}
+    .report-table th,.report-table td{overflow-wrap:break-word;word-break:break-word}
+    .report-table th:nth-child(1),.report-table td:nth-child(1){width:44px}
+    .report-table th:nth-child(2),.report-table td:nth-child(2){width:120px}
+    .report-table th:nth-child(3),.report-table td:nth-child(3){width:80px}
+    .report-table th:nth-child(4),.report-table td:nth-child(4){width:70px}
+    .report-table th:nth-child(5),.report-table td:nth-child(5),
+    .report-table th:nth-child(6),.report-table td:nth-child(6){width:180px}
+    .report-table th:nth-child(7),.report-table td:nth-child(7){width:280px}
+    .report-table th:nth-child(8),.report-table td:nth-child(8){width:80px}
+    .chip{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:900;border:1px solid transparent}.chip.Critical,.chip.failed,.chip.error,.chip.interrupted{background:#fee2e2;color:#991b1b;border-color:#fecaca}.chip.Major,.chip.running{background:#ffedd5;color:#9a3412;border-color:#fed7aa}.chip.Minor,.chip.prepared,.chip.queued,.chip.uploaded{background:#fef9c3;color:#854d0e;border-color:#fde68a}.chip.Passed,.chip.done,.chip.active{background:#dcfce7;color:#166534;border-color:#bbf7d0}.chip.admin{background:#e0e7ff;color:#3730a3;border-color:#c7d2fe}.chip.user{background:#e2e8f0;color:#334155;border-color:#cbd5e1}.actions{display:flex;gap:8px;flex-wrap:wrap}.unmatched-box{margin:12px 0 8px;border:1px solid #fed7aa;background:#fffaf5;border-radius:14px;padding:12px 14px}.unmatched-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:8px}.unmatched-head b{color:#9a3412}.unmatched-head span{font-size:11px;color:#9a3412}.unmatched-list{display:flex;flex-direction:column;gap:6px}.unmatched-table{margin-top:8px}.unmatched-table th{background:#fff7ed;color:#9a3412}.unmatched-table td{font-size:12px}.unmatched-table td:nth-child(1),.unmatched-table td:nth-child(2){width:38%;word-break:break-word}.unmatched-item{display:grid;grid-template-columns:72px minmax(0,1fr) minmax(180px,.7fr);gap:10px;align-items:center;background:#fff;border:1px solid #fed7aa;border-radius:9px;padding:8px 10px;font-size:12px}.unmatched-side{font-weight:800;color:#9a3412}.unmatched-name{font-weight:750;overflow-wrap:anywhere}.unmatched-reason{font-size:11px;color:#78716c}@media(max-width:900px){.unmatched-item{grid-template-columns:1fr}.unmatched-head{align-items:flex-start;flex-direction:column}}
+.linkbtn{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:10px;padding:8px 10px;font-weight:850;text-decoration:none;font-size:12px}.smallbtn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 10px;font-weight:850;font-size:12px}.progress{height:9px;background:#e2e8f0;border-radius:999px;overflow:hidden}.bar{height:100%;background:linear-gradient(135deg,#2563eb,#16a34a);width:0%;transition:.3s}
+    .report-page{max-width:1280px;margin:0 auto}.report-title{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.summary-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:16px 0}.mini{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px}.mini small{color:var(--muted);font-weight:800}.mini b{display:block;margin-top:4px}.expand-row td{background:#f8fafc!important}.detail-box{display:grid;grid-template-columns:1fr;gap:10px}.detail-block{border:1px solid #e2e8f0;border-radius:14px;background:#fff;padding:12px}.detail-block b{display:block;color:#334155;margin-bottom:6px}.truncate{max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.toast{position:fixed;right:18px;bottom:18px;background:#0f172a;color:white;padding:12px 16px;border-radius:14px;box-shadow:var(--shadow);z-index:99}
+
+    /* Refined normal-user workspace */
+    .app{background:radial-gradient(circle at 8% 8%,rgba(59,130,246,.10),transparent 28%),radial-gradient(circle at 92% 18%,rgba(124,58,237,.08),transparent 25%),#f6f8fc}
+    .topbar{height:74px;padding:0 34px;background:rgba(255,255,255,.84);backdrop-filter:blur(18px);box-shadow:0 4px 20px rgba(15,23,42,.04)}
+    .main{padding:36px 30px 56px;max-width:1180px}.page-head{margin-bottom:24px}.page-head h1{font-size:30px;letter-spacing:-.035em}.page-head p{font-size:14px;margin-top:8px}.page-kicker{display:inline-flex;font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.09em;color:#4f46e5;background:#eef2ff;border:1px solid #c7d2fe;border-radius:999px;padding:7px 10px;margin-bottom:12px}
+    .tabs{display:flex;gap:6px;padding:7px;margin:0 0 26px;background:rgba(255,255,255,.78);border-color:#dbe3ef;box-shadow:0 10px 28px rgba(15,23,42,.05)}.tab{flex:1;color:#64748b;transition:.18s}.tab:hover{color:#334155;background:#f8fafc}.tab.active{background:linear-gradient(135deg,#eff6ff,#f5f3ff);color:#1e3a8a;box-shadow:inset 0 0 0 1px #c7d2fe}
+    .workspace{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:20px;align-items:start}.card{margin:0;padding:24px;background:rgba(255,255,255,.9);border-color:#dbe3ef}.workspace-side{display:grid;gap:14px}.info-card{background:linear-gradient(145deg,#0f172a,#1e293b);color:#fff;border-radius:22px;padding:22px}.info-card h3{margin:0 0 10px}.info-step{display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:12px;color:#e2e8f0}.step-num{width:24px;height:24px;flex:0 0 24px;display:grid;place-items:center;border-radius:8px;background:rgba(255,255,255,.12);font-weight:950}.tip-card{padding:18px;border-radius:20px;background:#f8fafc;border:1px solid #e2e8f0;color:#475569;font-size:12px;line-height:1.6}.tip-card b{display:block;color:#0f172a;font-size:13px;margin-bottom:5px}
+    .upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.upload-box{padding:22px;min-height:230px;border:1px dashed #b9c7db;background:linear-gradient(145deg,#f8fbff,#f8fafc);border-radius:20px;transition:.2s}.upload-box:hover{border-color:#818cf8;background:linear-gradient(145deg,#fbfdff,#f7f5ff);transform:translateY(-1px)}.upload-icon{width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:#e0e7ff;color:#4338ca;font-size:19px;margin-bottom:14px}.upload-box:nth-child(2) .upload-icon{background:#dbeafe;color:#2563eb}.upload-box .hint{min-height:34px;margin-bottom:16px}.upload-title{display:flex;align-items:center;gap:9px;margin-bottom:8px}.upload-title h3{margin:0;font-size:16px}.format-pill{font-size:10px;font-weight:950;letter-spacing:.04em;text-transform:uppercase;padding:5px 8px;border-radius:999px;background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe}.file-picker{display:none}.choose-files{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:170px;background:linear-gradient(135deg,#2563eb 0%,#7c3aed 100%);color:#fff;border:0;border-radius:13px;padding:12px 18px;font-weight:950;font-size:13px;box-shadow:0 10px 22px rgba(79,70,229,.24);transition:.18s}.choose-files:hover{transform:translateY(-1px);box-shadow:0 13px 26px rgba(79,70,229,.30)}.selected-files{margin-top:12px;min-height:38px;padding:10px 12px;border-radius:12px;background:#fff;border:1px solid #e2e8f0;color:#64748b;font-size:11px;line-height:1.5;word-break:break-word}.selected-files.has-files{color:#1e293b;border-color:#c7d2fe;background:#f8f7ff}.run-actions{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:20px;padding-top:18px;border-top:1px solid #e2e8f0}.run-note{font-size:12px;color:#64748b;line-height:1.45}.run-note b{display:block;color:#334155;margin-bottom:2px}.primary{border-radius:14px;min-width:175px}
+
+    .batch-overview{display:grid;grid-template-columns:repeat(7,minmax(105px,1fr));gap:10px;margin:0 0 16px}.batch-stat{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:14px 12px;min-height:78px}.batch-stat small{display:block;color:#64748b;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.04em}.batch-stat b{display:block;margin-top:7px;font-size:21px;letter-spacing:-.02em}.batch-stat.accent{background:linear-gradient(135deg,#eff6ff,#f5f3ff);border-color:#c7d2fe}.batch-progress-wrap{margin:0 0 16px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:14px}.batch-progress-head{display:flex;justify-content:space-between;gap:12px;font-size:12px;font-weight:850;margin-bottom:8px}.batch-progress-track{height:10px;background:#e2e8f0;border-radius:999px;overflow:hidden}.batch-progress-bar{height:100%;width:0;background:linear-gradient(135deg,#2563eb,#7c3aed);transition:width .35s}.batch-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 14px}.batch-note{font-size:12px;color:#64748b}.batch-note b{color:#334155}.batch-complete{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:12px;padding:9px 12px;font-size:12px;font-weight:850}.batch-estimate{white-space:nowrap}
+.qa-filter-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 14px;padding:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px}
+.qa-search{flex:1 1 280px;min-width:220px;border:1px solid #cbd5e1;border-radius:12px;padding:10px 13px;background:#fff;outline:none;font-size:13px}.qa-search:focus{border-color:#60a5fa;box-shadow:0 0 0 3px #dbeafe}
+.qa-filter-count{font-size:12px;color:#64748b;font-weight:800;margin-left:auto}.qa-filter-tags{display:flex;gap:7px;flex-wrap:wrap;width:100%}.qa-filter-tag{border:1px solid #dbe3ef;background:#fff;color:#475569;border-radius:999px;padding:7px 11px;font-size:11px;font-weight:900}.qa-filter-tag:hover{border-color:#93c5fd;color:#1d4ed8}.qa-filter-tag.active{background:#eff6ff;border-color:#93c5fd;color:#1d4ed8}.qa-filter-tag.critical.active{background:#fee2e2;border-color:#fecaca;color:#991b1b}.qa-filter-tag.major.active{background:#ffedd5;border-color:#fed7aa;color:#9a3412}.qa-filter-tag.minor.active{background:#fef9c3;border-color:#fde68a;color:#854d0e}.qa-filter-tag.pass.active{background:#dcfce7;border-color:#bbf7d0;color:#166534}
+.batch-row-hidden{display:none!important}
+@media(max-width:1050px){.batch-overview{grid-template-columns:repeat(4,minmax(105px,1fr))}}@media(max-width:700px){.batch-overview{grid-template-columns:repeat(2,minmax(105px,1fr))}.batch-actions{align-items:flex-start;flex-direction:column}}
+    .profile-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.profile-item{padding:18px;border:1px solid #e2e8f0;border-radius:18px;background:#f8fafc}.profile-item span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.07em;font-weight:900;color:#64748b;margin-bottom:7px}.profile-item b{font-size:15px;color:#0f172a;word-break:break-word}
+    @media(max-width:900px){.auth-card{grid-template-columns:1fr;min-height:auto}.auth-visual{display:none}.auth-form{padding:32px 24px}.layout{display:block}.sidebar{position:static;width:auto;height:auto}.grid,.upload-grid,.summary-strip,.workspace,.profile-grid{grid-template-columns:1fr}.main{padding:22px 14px}.topbar{height:auto;align-items:flex-start;padding:12px;gap:12px;flex-direction:column}}
+  </style>
 </head>
 <body>
-
-<header>
-  <div class="logo">
-    <div class="logo-icon">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <path d="M4 5h8M4 8h8M4 11h5" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
-        <circle cx="15" cy="14" r="3.5" stroke="white" stroke-width="1.5"/>
-        <path d="M17.5 16.5l1.5 1.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-    </div>
-    <div>
-      <h1>PDF to HTML QA Tool</h1>
-      <p>Batch accuracy checker with Excel reports</p>
-    </div>
-  </div>
-  <span class="header-badge">Batch Mode</span>
-</header>
-
-<main>
-  <aside>
-    <div class="aside-section">
-      <div class="section-label">Upload Files</div>
-      <div class="upload-stack">
-        <div class="dropzone upload-zone" id="pdfDropzone" data-kind="pdfs">
-          <input type="file" id="pdfInput" multiple accept=".pdf,.zip,application/pdf,application/zip,application/x-zip-compressed"
-                 onchange="selectUploadFiles('pdfs', this.files)">
-          <div class="drop-icon">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M5 2.5h7l3 3v12H5z" stroke="#2268d8" stroke-width="1.6" stroke-linejoin="round"/>
-              <path d="M12 2.5v3h3M7.5 10h5M7.5 13h5" stroke="#2268d8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <h3>Step 1 - Source PDFs</h3>
-          <p>Select PDF files or a PDF zip</p>
-          <div class="upload-count" id="pdfCount">No PDFs selected</div>
-        </div>
-
-        <div class="dropzone upload-zone" id="htmlDropzone" data-kind="htmls">
-          <input type="file" id="htmlInput" multiple accept=".html,.htm,.zip,text/html,application/zip,application/x-zip-compressed"
-                 onchange="selectUploadFiles('htmls', this.files)">
-          <div class="drop-icon">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M5 2.5h10v15H5z" stroke="#0f9f8f" stroke-width="1.6" stroke-linejoin="round"/>
-              <path d="M8 8l-2 2 2 2M12 8l2 2-2 2" stroke="#0f9f8f" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <h3>Step 2 - Converted HTML</h3>
-          <p>Select the HTML zip containing HTML and Images folders</p>
-          <div class="upload-count" id="htmlCount">No HTML files selected</div>
-        </div>
-
-<button type="button" class="prepare-btn" id="prepareBtn" onclick="uploadSelectedFiles()" disabled>
-  Prepare File Pairs
-</button>
-
-<div class="aside-section">
-  <button class="run-btn" id="runBtn" onclick="runAll()" disabled>
-    Run QA on All Pairs
-  </button>
-</div>
-
-<div class="aside-section" id="unmatchedSection" style="display:none">
-  <div class="section-label">Unmatched Files</div>
-  <div id="unmatchedList"></div>
-</div>
-
-<div class="aside-section" id="pairsSection" style="display:none">
-  <div class="section-label" id="pairsLabel">Correctly Paired Files (0)</div>
-  <div class="file-pairs" id="pairsList"></div>
-</div>
-  </aside>
-
-  <div class="results" id="results">
-    <div class="empty" id="emptyState">
-      <div class="empty-panel">
-        <svg width="88" height="88" viewBox="0 0 88 88" fill="none" aria-hidden="true">
-          <rect x="12" y="10" width="42" height="56" rx="7" fill="#eef6ff" stroke="#b8cef2" stroke-width="2"/>
-          <path d="M22 28h22M22 37h22M22 46h13" stroke="#2268d8" stroke-width="2.4" stroke-linecap="round"/>
-          <circle cx="62" cy="62" r="16" fill="#e8f7f4" stroke="#0f9f8f" stroke-width="2.2"/>
-          <path d="M55 62l5 5 10-11" stroke="#0f7d70" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <div>
-          <h2>Ready for a QA run</h2>
-          <p>Add matching PDF and HTML files on the left. Completed checks will appear here with severity counts, line references, excerpts, and Excel downloads.</p>
-        </div>
-        <div class="empty-stats">
-          <div class="stat"><strong>PDF</strong><span>source file</span></div>
-          <div class="stat"><strong>HTML</strong><span>converted file</span></div>
-          <div class="stat"><strong>XLSX</strong><span>report output</span></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</main>
-
-
+<div id="root"></div><div id="toast" class="toast hidden"></div>
 <script>
-let pairs = [];
-let batchId = "";
-let selectedUploads = { pdfs: [], htmls: [] };
-let pairStates = [];
-let unmatchedFiles = [];
-let openedPairId = null;
-let frontFilter = "all";
-let detailFilters = {};
-window._pairJobMap = {};
-
-document.querySelectorAll(".upload-zone").forEach(zone => {
-  zone.addEventListener("dragover", e => { e.preventDefault(); zone.classList.add("drag"); });
-  zone.addEventListener("dragleave", () => zone.classList.remove("drag"));
-  zone.addEventListener("drop", e => {
-    e.preventDefault();
-    zone.classList.remove("drag");
-    const kind = zone.dataset.kind;
-    selectUploadFiles(kind, e.dataTransfer.files);
-  });
-});
-
-function selectUploadFiles(kind, fileList) {
-  const files = [...fileList].filter(file => {
-    const name = file.name.toLowerCase();
-
-    if (kind === "pdfs") {
-      return name.endsWith(".pdf") || name.endsWith(".zip");
-    }
-
-    if (kind === "htmls") {
-      return name.endsWith(".html") || name.endsWith(".htm") || name.endsWith(".zip");
-    }
-
-    return false;
-  });
-
-  selectedUploads[kind] = files;
-
-  pairs = [];
-  batchId = "";
-  unmatchedFiles = [];
-  pairStates = [];
-  openedPairId = null;
-
-  updateUploadCounts();
-  renderPairs();
-  resetResults();
-}
-
-function updateUploadCounts() {
-  const pdfs = selectedUploads.pdfs.length;
-  const htmls = selectedUploads.htmls.length;
-  document.getElementById("pdfCount").textContent = pdfs ? `${pdfs} PDF/ZIP file${pdfs > 1 ? "s" : ""} selected` : "No PDFs selected";
-  document.getElementById("htmlCount").textContent = htmls ? `${htmls} HTML/ZIP file${htmls > 1 ? "s" : ""} selected` : "No HTML files selected";
-  const readyToPrepare = pdfs > 0 && htmls > 0;
-  const prepareBtn = document.getElementById("prepareBtn");
-  prepareBtn.disabled = !readyToPrepare;
-  prepareBtn.style.pointerEvents = readyToPrepare ? "auto" : "none";
-  document.getElementById("runBtn").disabled = pairs.length === 0;
-}
-
-async function uploadSelectedFiles() {
-  const allFiles = [...selectedUploads.pdfs, ...selectedUploads.htmls].map(file => ({
-    file,
-    relpath: file.webkitRelativePath || file.name
-  }));
-  await handleFiles(allFiles);
-}
-
-async function handleFiles(filesWithPaths) {
-  if (!filesWithPaths.length) return;
-  const prepareBtn = document.getElementById("prepareBtn");
-  prepareBtn.disabled = true;
-  prepareBtn.textContent = "Preparing...";
-  try {
-    const fd = new FormData();
-    for (const { file, relpath } of filesWithPaths) {
-      fd.append("files", file, file.name);
-      fd.append("relpaths", relpath || file.webkitRelativePath || file.name);
-    }
-    const res = await fetch("/upload", { method: "POST", body: fd });
-    const raw = await res.text();
-    let data = {};
-    try { data = raw ? JSON.parse(raw) : {}; }
-    catch { throw new Error(raw || "Server returned a non-JSON response from /upload."); }
-    if (!res.ok || data.error) throw new Error(data.error || `Upload failed. HTTP ${res.status}`);
-
-    pairs = data.pairs || [];
-	unmatchedFiles = data.unmatched || [];
-    batchId = data.batch_id || data.session || "";
-    pairStates = pairs.map((p, idx) => ({ pair: p, file_no: idx + 1, state: "queued", progress: 0, label: "Queued", result: null, error: null }));
-    renderPairs();
-    renderPreparedBatch();
-    document.getElementById("runBtn").disabled = pairs.length === 0;
-    if (!pairs.length) {
-      const unmatched = (data.unmatched || []).join("\n");
-      alert(unmatched ? `No matching PDF/HTML pairs found.\n\nUnmatched:\n${unmatched}` : "No matching PDF/HTML pairs found.");
-    }
-  } catch (err) {
-    pairs = [];
-    batchId = "";
-    pairStates = [];
-    renderPairs();
-    resetResults();
-    document.getElementById("runBtn").disabled = true;
-    alert(err && err.message ? err.message : String(err));
-  } finally {
-    prepareBtn.disabled = false;
-    prepareBtn.textContent = "Prepare File Pairs";
-    updateUploadCounts();
-  }
-}
-
-function renderPairs() {
-  const sec = document.getElementById("pairsSection");
-  const list = document.getElementById("pairsList");
-
-  if (!sec || !list) return;
-
-  sec.style.display = pairs.length ? "block" : "none";
-
-  document.getElementById("pairsLabel").textContent =
-    `Correctly Paired Files (${pairs.length})`;
-
-  list.innerHTML = pairs.map((p, idx) => `
-    <div class="pair-card" id="pair-${escAttr(p.pair_id)}">
-      <div class="pair-icons">
-        <span class="file-chip pdf-chip">PDF</span>
-        <span class="file-chip html-chip">HTML</span>
-      </div>
-      <div class="pair-name" title="${escAttr(p.pdf_name)}">
-        ${String(idx + 1).padStart(2, "0")}. ${escHtml(p.pdf_name.replace(/\.pdf$/i, ""))}
-      </div>
-      <button class="pair-remove" onclick="removePair('${escAttr(p.pair_id)}')" title="Remove">×</button>
-    </div>
-  `).join("");
-
-  const um = document.getElementById("unmatchedSection");
-  const ul = document.getElementById("unmatchedList");
-
-  if (!um || !ul) return;
-
-  if (unmatchedFiles.length) {
-    um.style.display = "block";
-    ul.innerHTML = unmatchedFiles.map(f => `
-      <div class="unmatched-item">↳ ${escHtml(f)}</div>
-    `).join("");
-  } else {
-    um.style.display = "none";
-    ul.innerHTML = "";
-  }
-}
-
-function removePair(pid) {
-  pairs = pairs.filter(p => p.pair_id !== pid);
-  pairStates = pairStates.filter(s => s.pair.pair_id !== pid).map((s, idx) => ({...s, file_no: idx + 1}));
-  renderPairs();
-  renderPreparedBatch();
-  document.getElementById("runBtn").disabled = pairs.length === 0;
-}
-
-function resetResults() {
-  const results = document.getElementById("results");
-  results.innerHTML = document.getElementById("emptyState") ? results.innerHTML : `
-    <div class="empty" id="emptyState">
-      <div class="empty-panel">
-        <svg width="88" height="88" viewBox="0 0 88 88" fill="none" aria-hidden="true">
-          <rect x="12" y="10" width="42" height="56" rx="7" fill="#eef6ff" stroke="#b8cef2" stroke-width="2"/>
-          <path d="M22 28h22M22 37h22M22 46h13" stroke="#2268d8" stroke-width="2.4" stroke-linecap="round"/>
-          <circle cx="62" cy="62" r="16" fill="#e8f7f4" stroke="#0f9f8f" stroke-width="2.2"/>
-          <path d="M55 62l5 5 10-11" stroke="#0f7d70" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <div><h2>Ready for a QA run</h2><p>Add matching PDF and HTML files on the left. Completed checks will appear here with batch severity counts, per-file rows, and Excel downloads.</p></div>
-        <div class="empty-stats"><div class="stat"><strong>PDF</strong><span>source file</span></div><div class="stat"><strong>HTML</strong><span>converted file</span></div><div class="stat"><strong>XLSX</strong><span>report output</span></div></div>
-      </div>
-    </div>`;
-}
-
-function renderPreparedBatch() {
-  if (!pairs.length) { resetResults(); return; }
-  document.getElementById("results").innerHTML = `
-    <div class="batch-card">
-      <div class="batch-top">
-        <div class="batch-title"><h2>Prepared Batch ${escHtml(batchId || "—")}</h2><p>${pairs.length} matched file pair${pairs.length === 1 ? "" : "s"}. Run QA to generate severity counts and reports.</p></div>
-      </div>
-      <div class="file-table-wrap">
-        <table class="file-table"><thead><tr><th>No</th><th>File Pair</th><th>Status</th><th>Severity</th><th>Total Errors</th></tr></thead>
-        <tbody>${pairStates.map(state => fileRowHtml(state)).join("")}</tbody></table>
-      </div>
-    </div>`;
-}
-
-async function runAll() {
-  if (!pairs.length) return;
-  openedPairId = null;
-  frontFilter = "all";
-  document.getElementById("runBtn").disabled = true;
-  pairStates = pairStates.map(s => ({...s, state: "queued", progress: 0, label: "Queued", result: null, error: null}));
-  renderBatchDashboard();
-
-  for (let i = 0; i < pairStates.length; i++) {
-    const state = pairStates[i];
-    state.state = "running";
-    state.label = `Running ${i + 1}/${pairStates.length}`;
-    renderBatchDashboard();
-    document.getElementById("runBtn").innerHTML = `<span class="spin">⟳</span> Running ${i + 1}/${pairStates.length}…`;
-
-    try {
-      const p = state.pair;
-      const res = await fetch("/run", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({
-          pdf_path: p.pdf_path,
-          html_path: p.html_path,
-          pair_id: p.pair_id,
-          pdf_name: p.pdf_name,
-          html_name: p.html_name,
-          batch_id: batchId,
-          file_no: state.file_no
-        })
-      });
-      if (!res.ok) throw new Error(await res.text() || `Failed to start job. HTTP ${res.status}`);
-      const data = await res.json();
-      if (!data.job_id) throw new Error(data.error || "Server did not return a job id.");
-      window._pairJobMap[p.pair_id] = data.job_id;
-      state.job_id = data.job_id;
-      await pollJob(data.job_id, state);
-    } catch (err) {
-      state.state = "error";
-      state.error = err && err.message ? err.message : String(err);
-      renderBatchDashboard();
-    }
-  }
-
-  document.getElementById("runBtn").disabled = false;
-  document.getElementById("runBtn").innerHTML = `<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M3 1.5l9 6-9 6V1.5z" fill="white"/></svg> Run QA on All Pairs`;
-}
-
-async function pollJob(job_id, state) {
-  while (true) {
-    await sleep(1000);
-
-    const r = await fetch(`/status/${job_id}`);
-    const job = await r.json();
-
-    state.progress = job.progress || 0;
-    state.label = job.label || "";
-
-    // Do NOT rebuild the whole dashboard every second.
-    // Only update the currently running row.
-    updateRunningFileRow(state);
-
-    if (job.status === "done") {
-      state.state = "done";
-      state.result = job.result;
-
-      // Full render only once when file finishes.
-      renderBatchDashboard();
-      return;
-    }
-
-    if (job.status === "error") {
-      state.state = "error";
-      state.error = job.error || "Unknown error";
-
-      // Full render only once when file fails.
-      renderBatchDashboard();
-      return;
-    }
-  }
-}
-
-function updateRunningFileRow(state) {
-  const row = document.getElementById(`file-row-${state.pair.pair_id}`);
-  if (!row) return;
-
-  const statusCell = row.querySelector(".file-status-cell");
-  const severityCell = row.querySelector(".file-severity-cell");
-  const totalCell = row.querySelector(".file-total-cell");
-
-  if (statusCell) {
-    statusCell.innerHTML = statusPill("Running");
-  }
-
-  if (severityCell) {
-    severityCell.innerHTML = severityPill("—");
-  }
-
-  if (totalCell) {
-    totalCell.textContent = `${state.progress || 0}%`;
-  }
-}
-
-function openFileDetailPage(pairId) {
-  console.log("Opening report for:", pairId);
-
-  const state = pairStates.find(s =>
-    s.pair && String(s.pair.pair_id) === String(pairId)
-  );
-
-  if (!state) {
-    alert("Could not find this file result.");
-    return;
-  }
-
-  if (!state.result) {
-    alert("Run QA first. This file report is not ready yet.");
-    return;
-  }
-
-  renderFileDetailPage(state);
-}
-
-function renderFileDetailPage(state) {
-  const results = document.getElementById("results");
-  const p = state.pair;
-  const result = state.result || {};
-  const issues = result.issues || [];
-
-  const status = getFileStatus(state);
-  const fileSeverity = getFileSeverity(state);
-
-  const criticalCount = Number(result.critical_count || 0);
-  const majorCount = Number(result.major_count || 0);
-  const minorCount = Number(result.minor_count || 0);
-  const totalErrors = Number(result.issue_count || issues.length || 0);
-
-    results.innerHTML = `
-  <div class="file-detail-page">
-    <div class="file-detail-header">
-      <div class="file-detail-title">
-        <button class="back-btn" onclick="renderBatchDashboard()">← Back to Batch Results</button>
-        <h2>File QA Report</h2>
-        <p>${escHtml(p.pdf_name)}</p>
-      </div>
-
-      <button class="file-download-btn" onclick="dlFileReport('${escAttr(state.job_id || "")}')" ${state.job_id ? "" : "disabled"}>
-        Download File Excel
-      </button>
-    </div>
-
-      <div class="file-detail-meta">
-        <div class="meta-chip">Batch: ${escHtml(batchId || "—")}</div>
-        <div class="meta-chip">File: ${String(state.file_no).padStart(2, "0")}</div>
-        <div class="meta-chip">Language: ${escHtml(result.language || "—")}</div>
-        <div class="meta-chip">Status: ${escHtml(status)}</div>
-        <div class="meta-chip">Severity: ${escHtml(fileSeverity)}</div>
-        <div class="meta-chip">Total Errors: ${totalErrors}</div>
-        <div class="meta-chip">Critical: ${criticalCount}</div>
-        <div class="meta-chip">Major: ${majorCount}</div>
-        <div class="meta-chip">Minor: ${minorCount}</div>
-      </div>
-
-      <div class="file-detail-names">
-        <div><strong>PDF:</strong> ${escHtml(p.pdf_name)}</div>
-        <div><strong>HTML:</strong> ${escHtml(p.html_name)}</div>
-      </div>
-
-      <div class="batch-filter-row">
-        ${detailChip("all", `All (${totalErrors})`)}
-        ${detailChip("Critical", `Critical (${criticalCount})`)}
-        ${detailChip("Major", `Major (${majorCount})`)}
-        ${detailChip("Minor", `Minor (${minorCount})`)}
-      </div>
-
-      <div class="issue-list">
-  ${
-    issues.length
-      ? issues.map((issue, idx) => issueCardHtml(issue, idx)).join("")
-      : `<div style="color:var(--muted);padding:18px">No issues found for this file.</div>`
-  }
-</div>
-    </div>
-  `;
-}
-
-function openFileDetailPage(pairId) {
-  const state = pairStates.find(s => s.pair && String(s.pair.pair_id) === String(pairId));
-
-  if (!state) {
-    alert("Could not find this file result.");
-    return;
-  }
-
-  renderFileDetailPage(state);
-}
-
-function renderFileDetailPage(state) {
-  const results = document.getElementById("results");
-  const p = state.pair;
-  const result = state.result || {};
-  const issues = result.issues || [];
-
-  const status = getFileStatus(state);
-  const fileSeverity = getFileSeverity(state);
-
-  const criticalCount = Number(result.critical_count || 0);
-  const majorCount = Number(result.major_count || 0);
-  const minorCount = Number(result.minor_count || 0);
-  const totalErrors = Number(result.issue_count || issues.length || 0);
-
-  if (state.state !== "done") {
-    results.innerHTML = `
-      <div class="batch-card">
-        <button class="dl-btn" onclick="renderBatchDashboard()">← Back to Batch Results</button>
-        <h2 style="margin-top:18px">File QA Report</h2>
-        <p>This file has not finished QA yet.</p>
-      </div>
-    `;
-    return;
-  }
-
-  results.innerHTML = `
-    <div class="batch-card">
-      <div class="batch-top">
-        <div class="batch-title">
-          <button class="dl-btn" onclick="renderBatchDashboard()" style="margin-bottom:14px">
-            ← Back to Batch Results
-          </button>
-
-          <h2>File QA Report</h2>
-          <p>${escHtml(p.pdf_name)}</p>
-        </div>
-
-        <div class="batch-actions">
-          <button class="dl-btn" onclick="dlFileReport('${escAttr(state.job_id || "")}')" ${state.job_id ? "" : "disabled"}>
-            Download File Excel
-          </button>
-        </div>
-      </div>
-
-      <div class="file-detail-meta">
-        <span class="meta-chip">Batch: ${escHtml(batchId || "—")}</span>
-        <span class="meta-chip">File: ${String(state.file_no).padStart(2, "0")}</span>
-        <span class="meta-chip">Language: ${escHtml(result.language || "—")}</span>
-        <span class="meta-chip">Status: ${escHtml(status)}</span>
-        <span class="meta-chip">Severity: ${escHtml(fileSeverity)}</span>
-        <span class="meta-chip">Total Errors: ${totalErrors}</span>
-        <span class="meta-chip">Critical: ${criticalCount}</span>
-        <span class="meta-chip">Major: ${majorCount}</span>
-        <span class="meta-chip">Minor: ${minorCount}</span>
-      </div>
-
-      <div style="margin:18px 0;color:var(--muted);font-size:13px;line-height:1.7">
-        <div><strong style="color:var(--text)">PDF:</strong> ${escHtml(p.pdf_name)}</div>
-        <div><strong style="color:var(--text)">HTML:</strong> ${escHtml(p.html_name)}</div>
-      </div>
-
-      <div class="batch-filter-row">
-        <button class="filter-chip active">All (${totalErrors})</button>
-        <button class="filter-chip">Critical (${criticalCount})</button>
-        <button class="filter-chip">Major (${majorCount})</button>
-        <button class="filter-chip">Minor (${minorCount})</button>
-      </div>
-
-      <div class="file-table-wrap">
-        <table class="file-table">
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>Type of Error</th>
-              <th>Severity</th>
-              <th>Line</th>
-              <th>Description</th>
-              <th>Expected</th>
-              <th>Actual</th>
-              <th>Excerpt</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            ${
-              issues.length
-                ? issues.map((issue, idx) => issueRowHtml(issue, idx)).join("")
-                : `<tr><td colspan="8" style="color:var(--muted);padding:18px">No issues found for this file.</td></tr>`
-            }
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `;
-}
-
-function renderBatchDashboard() {
-  const results = document.getElementById("results");
-  const summary = computeBatchSummary();
-  const filtered = filterStates(pairStates, frontFilter);
-  results.innerHTML = `
-    <div class="batch-card">
-      <div class="batch-top">
-        <div class="batch-title"><h2>Batch ${escHtml(batchId || "—")}</h2><p>${summary.completed}/${summary.total} files completed</p></div>
-        <div class="batch-actions"><button class="dl-btn" onclick="dlBatchReport()" ${summary.completed ? "" : "disabled"}>Download Batch Excel</button></div>
-      </div>
-      <div class="batch-stats">
-        <div class="batch-stat"><strong>${summary.total}</strong><span>Total Files</span></div>
-        <div class="batch-stat"><strong>${summary.failed}</strong><span>Failed</span></div>
-        <div class="batch-stat"><strong>${summary.passed}</strong><span>Passed</span></div>
-        <div class="batch-stat critical"><strong>${summary.fileCritical}</strong><span>Critical Files</span></div>
-        <div class="batch-stat major"><strong>${summary.fileMajor}</strong><span>Major Files</span></div>
-        <div class="batch-stat minor"><strong>${summary.fileMinor}</strong><span>Minor Files</span></div>
-      </div>
-      <div class="batch-filter-row">
-       ${frontChip("all", `All (${summary.total})`)}
-       ${frontChip("Critical", `Critical Only (${summary.fileCritical})`)}
-       ${frontChip("Major", `Major Only (${summary.fileMajor})`)}
-       ${frontChip("Minor", `Minor Only (${summary.fileMinor})`)}
-       ${frontChip("Passed", `Passed (${summary.passed})`)}
-      </div>
-      <div class="file-table-wrap">
-        <table class="file-table">
-          <thead>
-  <tr>
-    <th>No</th>
-    <th>File Pair</th>
-    <th>Status</th>
-    <th>Severity</th>
-    <th>Total Errors</th>
-    <th>Report</th>
-  </tr>
-</thead>
-          <tbody>${filtered.map(state => fileRowHtml(state)).join("") || `<tr><td colspan="6" style="color:var(--muted);padding:18px">No files match this filter.</td></tr>`}</tbody>
-        </table>
-      </div>
-    </div>`;
-}
-
-function frontChip(value, label) {
-  return `<button class="chip ${frontFilter === value ? "on" : ""}" onclick="setFrontFilter('${value}')">${label}</button>`;
-}
-
-function setFrontFilter(value) {
-  frontFilter = value;
-  openedPairId = null;
-  renderBatchDashboard();
-}
-
-function getFileStatus(state) {
-  if (!state) return "Queued";
-
-  if (state.state === "running") return "Running";
-  if (state.state === "error") return "Error";
-
-  if (state.state === "done") {
-    const total = Number(state.result?.issue_count || 0);
-    return total > 0 ? "Failed" : "Passed";
-  }
-
-  return "Queued";
-}
-
-function fileRowHtml(state) {
-  const p = state.pair;
-  const status = getFileStatus(state);
-  const severity = getFileSeverity(state);
-
-  const total =
-    state.state === "done"
-      ? Number(state.result?.issue_count || 0)
-      : state.state === "running"
-        ? `${state.progress || 0}%`
-        : "—";
-
-  const canOpen = state.state === "done";
-
-  return `
-    <tr id="file-row-${escAttr(p.pair_id)}" class="file-row">
-      <td style="font-weight:800">${String(state.file_no).padStart(2, "0")}</td>
-
-      <td>
-        <div class="file-pair-name">${escHtml(p.pdf_name)}</div>
-        <div class="file-pair-sub">${escHtml(p.html_name)}</div>
-      </td>
-
-      <td class="file-status-cell">${statusPill(status)}</td>
-      <td class="file-severity-cell">${severityPill(severity)}</td>
-      <td class="file-total-cell" style="font-weight:850">${escHtml(total)}</td>
-
-      <td>
-        <button
-    type="button"
-    class="open-report-btn"
-    data-pair-id="${escAttr(p.pair_id)}"
-    ${state.result ? "" : "disabled"}
-     >
-    Open Report
-  </button>
-</td>
-    </tr>
-  `;
-}
-
-function stateStatus(state) {
-  if (state.state === "done") return state.result && state.result.status === "Passed" ? "Passed" : "Failed";
-  if (state.state === "running") return "Running";
-  if (state.state === "error") return "Failed";
-  return "Queued";
-}
-
-function statusPill(status) {
-  const cls = status.toLowerCase();
-  return `<span class="status-pill ${cls}">${escHtml(status)}</span>`;
-}
-
-function severityPill(severity) {
-  if (!severity || severity === "—") return `<span class="progress-inline">—</span>`;
-  return `<span class="severity-pill ${severity.toLowerCase()}">${escHtml(severity)}</span>`;
-}
-
-function toggleFileDetail(pair_id) {
-  openedPairId = openedPairId === pair_id ? null : pair_id;
-  renderBatchDashboard();
-}
-
-function fileDetailHtml(state) {
-  if (state.state === "queued") return `<div class="detail-panel"><div class="progress-inline">Queued. Run QA to see full error report.</div></div>`;
-  if (state.state === "running") return `<div class="detail-panel"><div class="progress-inline">${escHtml(state.label)} · ${state.progress || 0}%</div></div>`;
-  if (state.state === "error") return `<div class="detail-panel"><div style="color:var(--red);font-family:var(--mono);white-space:pre-wrap">${escHtml(state.error)}</div></div>`;
-
-  const r = state.result;
-  const pair = state.pair;
-  const issues = r.issues || [];
-  const currentFilter = detailFilters[pair.pair_id] || "all";
-  const filteredIssues = filterIssues(issues, currentFilter);
-  const categories = [...new Set(issues.map(i => i.category))];
-
-  return `
-    <div class="detail-panel">
-      <div class="detail-head">
-        <div class="detail-title">
-          <h3>File QA Report</h3>
-          <p><b>PDF:</b> ${escHtml(r.pdf_name || pair.pdf_name)}<br><b>HTML:</b> ${escHtml(r.html_name || pair.html_name)}</p>
-        </div>
-        <button class="dl-btn" onclick="event.stopPropagation(); dlReport('${escAttr(pair.pair_id)}','${escAttr(r.unique_id)}')">Download File Excel</button>
-      </div>
-      <div class="tag-row">
-        <span class="info-tag">Batch ${escHtml(batchId || "—")}</span>
-        <span class="info-tag">File ${String(state.file_no).padStart(2,"0")}</span>
-        <span class="info-tag">${escHtml(r.language || "Unknown language")}</span>
-        <span class="info-tag ${r.status === "Passed" ? "ok" : "critical"}">${escHtml(r.status)}</span>
-        <span class="info-tag ${String(r.file_severity).toLowerCase()}">${escHtml(r.file_severity)}</span>
-        <span class="info-tag">${r.issue_count} Errors</span>
-        <span class="info-tag critical">Critical ${r.critical_count}</span>
-        <span class="info-tag major">Major ${r.major_count}</span>
-        <span class="info-tag minor">Minor ${r.minor_count}</span>
-      </div>
-      <div class="detail-filters">
-        ${detailChip(pair.pair_id, "all", `All ${issues.length}`)}
-        ${detailChip(pair.pair_id, "Critical", `Critical ${issues.filter(i=>i.severity==="Critical").length}`)}
-        ${detailChip(pair.pair_id, "Major", `Major ${issues.filter(i=>i.severity==="Major").length}`)}
-        ${detailChip(pair.pair_id, "Minor", `Minor ${issues.filter(i=>i.severity==="Minor").length}`)}
-        ${categories.map(c => detailChip(pair.pair_id, `cat:${c}`, `${c} ${issues.filter(i=>i.category===c).length}`)).join("")}
-      </div>
-      ${issues.length ? issueTableHtml(pair.pair_id, filteredIssues) : `<div class="no-issues-panel">✓ No issues found — this file passed QA.</div>`}
-    </div>`;
-}
-
-function detailChip(pair_id, value, label) {
-  const on = (detailFilters[pair_id] || "all") === value;
-  return `<button class="chip ${on ? "on" : ""}" onclick="event.stopPropagation(); setDetailFilter('${escAttr(pair_id)}','${escAttr(value)}')">${escHtml(label)}</button>`;
-}
-
-function setDetailFilter(pair_id, value) {
-  detailFilters[pair_id] = value;
-  openedPairId = pair_id;
-  renderBatchDashboard();
-}
-
-function filterIssues(issues, filter) {
-  if (!filter || filter === "all") return sortIssues(issues);
-  if (["Critical","Major","Minor"].includes(filter)) return sortIssues(issues.filter(i => i.severity === filter));
-  if (filter.startsWith("cat:")) return sortIssues(issues.filter(i => i.category === filter.slice(4)));
-  return sortIssues(issues);
-}
-
-function sortIssues(issues) {
-  const order = {Critical:0, Major:1, Minor:2};
-  return [...issues].sort((a,b) => (order[a.severity] ?? 9) - (order[b.severity] ?? 9) || (a.line || 99999) - (b.line || 99999));
-}
-
-function issueCardHtml(issue, idx) {
-  const sev = issue.display_severity || issue.qa_severity || issue.severity || "—";
-  const line = issue.line ? `L${issue.line}` : "—";
-
-  return `
-    <div class="issue-card">
-      <div class="issue-card-head">
-        <div class="issue-no">${String(idx + 1).padStart(2, "0")}</div>
-
-        <div class="issue-type">${escHtml(issue.category || issue.type || "—")}</div>
-
-        <div>${severityPill(sev)}</div>
-
-        <div class="issue-line">${escHtml(line)}</div>
-      </div>
-
-      <div class="issue-card-body">
-        <div class="issue-desc">
-          ${escHtml(issue.message || issue.description || "—")}
-        </div>
-
-        <div class="issue-compare-grid">
-          <div class="compare-box">
-            <div class="compare-label">Expected</div>
-            <div class="compare-value">${escHtml(issue.expected || "—")}</div>
-          </div>
-
-          <div class="compare-box">
-            <div class="compare-label">Actual</div>
-            <div class="compare-value">${escHtml(issue.actual || "—")}</div>
-          </div>
-        </div>
-
-        <div class="compare-label">Excerpt</div>
-        <div class="excerpt-box">${escHtml(issue.snippet || "—")}</div>
-      </div>
-    </div>
-  `;
-}
-
-function dlFileReport(jobId) {
-  if (!jobId) return;
-  window.location.href = `/download/${jobId}`;
-}
-
-function detailChip(value, label) {
-  return `<button class="filter-chip">${escHtml(label)}</button>`;
-}
-
-window._expandTextStore = window._expandTextStore || {};
-
-function expandableText(text, maxChars = 180) {
-  const raw = String(text || "—");
-
-  if (raw.length <= maxChars) {
-    return `<div class="qa-expandable">${escHtml(raw)}</div>`;
-  }
-
-  const id = `exp-${Math.random().toString(36).slice(2)}`;
-  const shortText = raw.slice(0, maxChars) + "…";
-
-  window._expandTextStore[id] = {
-    full: raw,
-    short: shortText,
-    expanded: false,
-  };
-
-  return `
-    <div class="qa-expandable" id="${id}">${escHtml(shortText)}</div>
-    <button type="button" class="qa-show-more-btn" onclick="toggleExpandableText('${id}', this)">
-      Show more
-    </button>
-  `;
-}
-
-function toggleExpandableText(id, btn) {
-  const item = window._expandTextStore[id];
-  const el = document.getElementById(id);
-
-  if (!item || !el) return;
-
-  item.expanded = !item.expanded;
-
-  el.textContent = item.expanded ? item.full : item.short;
-  btn.textContent = item.expanded ? "Show less" : "Show more";
-}
-
-function shortText(text, maxChars = 120) {
-  const raw = String(text || "—");
-
-  if (raw.length <= maxChars) {
-    return escHtml(raw);
-  }
-
-  return escHtml(raw.slice(0, maxChars) + "…");
-}
-
-function toggleIssueDetails(id, btn) {
-  const row = document.getElementById(id);
-
-  if (!row) return;
-
-  row.classList.toggle("open");
-
-  btn.textContent = row.classList.contains("open")
-    ? "Hide Details"
-    : "Show Details";
-}
-
-function issueTableHtml(pair_id, issues) {
-  if (!issues.length) {
-    return `<div class="no-issues-panel">No issues match this filter.</div>`;
-  }
-
-  return `
-    <div class="detail-table-wrap">
-      <table class="detail-table">
-        <colgroup>
-          <col class="col-no">
-          <col class="col-type">
-          <col class="col-severity">
-          <col class="col-line">
-          <col class="col-desc">
-          <col class="col-expected">
-          <col class="col-actual">
-          <col class="col-details">
-        </colgroup>
-
-        <thead>
-          <tr>
-            <th>No</th>
-            <th>Type of Error</th>
-            <th>Severity</th>
-            <th>HTML Line</th>
-            <th>Description</th>
-            <th>Expected</th>
-            <th>Actual</th>
-            <th>Details</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          ${issues.map((issue, idx) => {
-            const detailId = `issue-detail-${pair_id}-${idx}`;
-            const excerpt = issue.snippet || "No excerpt available.";
-
-            return `
-              <tr>
-                <td style="font-weight:850">${idx + 1}</td>
-
-                <td style="font-weight:850">
-                  ${escHtml(issue.category || "—")}
-                </td>
-
-                <td>
-                  ${severityPill(issue.severity || "—")}
-                </td>
-
-                <td class="line-num">
-                  ${issue.line ? `L${escHtml(issue.line)}` : "—"}
-                </td>
-
-                <td class="desc-cell">
-                  <div class="qa-short-text">
-                    ${shortText(issue.message || issue.description || "—", 150)}
-                  </div>
-                </td>
-
-                <td class="expected-cell">
-                  <div class="qa-short-text">
-                    ${shortText(issue.expected || "—", 90)}
-                  </div>
-                </td>
-
-                <td class="actual-cell">
-                  <div class="qa-short-text">
-                    ${shortText(issue.actual || "—", 90)}
-                  </div>
-                </td>
-
-                <td>
-                  <button
-                    type="button"
-                    class="details-btn"
-                    onclick="toggleIssueDetails('${detailId}', this)"
-                  >
-                    Show Details
-                  </button>
-                </td>
-              </tr>
-
-              <tr id="${detailId}" class="issue-extra-row">
-                <td colspan="8" class="issue-extra-cell">
-                  <div class="issue-extra-box">
-                    <div class="issue-extra-title">Full Excerpt / Context</div>
-                    <div class="issue-extra-content">${escHtml(excerpt)}</div>
-                  </div>
-                </td>
-              </tr>
-            `;
-          }).join("")}
-        </tbody>
-      </table>
-    </div>
-  `;
-}
-
-function filterStates(states, filter) {
-  if (filter === "all") return states;
-  if (filter === "Passed") return states.filter(s => s.result && s.result.status === "Passed");
-  return states.filter(s => s.result && s.result.file_severity === filter);
-}
-
-function getFileSeverity(state) {
-  if (!state || state.state !== "done") return "—";
-
-  const result = state.result || {};
-  const total = Number(result.issue_count || 0);
-  const critical = Number(result.critical_count || 0);
-  const major = Number(result.major_count || 0);
-  const minor = Number(result.minor_count || 0);
-
-  if (total === 0) return "Passed";
-
-  // file-level threshold
-  if (critical > 0 || major >= 5) return "Critical";
-  if (major > 0 || minor >= 8) return "Major";
-  if (minor > 0) return "Minor";
-
-  return "Passed";
-}
-
-function computeBatchSummary() {
-  const completed = pairStates.filter(s => s.state === "done");
-
-  const passed = completed.filter(s => getFileSeverity(s) === "Passed").length;
-  const fileCritical = completed.filter(s => getFileSeverity(s) === "Critical").length;
-  const fileMajor = completed.filter(s => getFileSeverity(s) === "Major").length;
-  const fileMinor = completed.filter(s => getFileSeverity(s) === "Minor").length;
-
-  return {
-    total: pairStates.length,
-    completed: completed.length,
-    passed,
-    failed: fileCritical + fileMajor + fileMinor,
-
-    // file-level counts
-    fileCritical,
-    fileMajor,
-    fileMinor,
-  };
-}
-
-async function dlReport(pair_id, unique_id) {
-  const jid = window._pairJobMap && window._pairJobMap[pair_id];
-  if (!jid) return;
-  const a = document.createElement("a");
-  a.href = `/download/${jid}`;
-  a.download = `${unique_id || "QA"}_report.xlsx`;
-  a.click();
-}
-
-function dlBatchReport() {
-  if (!batchId) return;
-  const a = document.createElement("a");
-  a.href = `/download-batch/${encodeURIComponent(batchId)}`;
-  a.download = `${batchId}_All_Files_QA_Report.xlsx`;
-  a.click();
-}
-
-document.addEventListener("click", function (event) {
-  const btn = event.target.closest(".open-report-btn");
-
-  if (!btn) return;
-
-  event.preventDefault();
-  event.stopPropagation();
-
-  const pairId = btn.dataset.pairId;
-
-  openFileDetailPage(pairId);
-});
-
-
-
-/* ================= FINAL OPEN REPORT OVERRIDE =================
-   This block intentionally overrides older duplicate detail functions above.
-   It makes Open Report / file row opening work even if older handlers remain.
-================================================================ */
-window.__qaDetailFilter = window.__qaDetailFilter || {};
-
-function qaIssueSeverity(issue) {
-  return issue.display_severity || issue.qa_severity || issue.severity || "—";
-}
-
-function qaSortedIssues(issues) {
-  const order = { Critical: 0, Major: 1, Minor: 2 };
-  return [...(issues || [])].sort((a, b) =>
-    (order[qaIssueSeverity(a)] ?? 9) - (order[qaIssueSeverity(b)] ?? 9) ||
-    Number(a.line || 99999) - Number(b.line || 99999)
-  );
-}
-
-function qaFilteredIssues(issues, filter) {
-  const sorted = qaSortedIssues(issues);
-  if (!filter || filter === "all") return sorted;
-  if (["Critical", "Major", "Minor"].includes(filter)) {
-    return sorted.filter(i => qaIssueSeverity(i) === filter);
-  }
-  if (filter.startsWith("cat:")) {
-    const cat = filter.slice(4);
-    return sorted.filter(i => (i.category || i.type || "—") === cat);
-  }
-  return sorted;
-}
-
-function qaCountBySeverity(issues, severity) {
-  return (issues || []).filter(i => qaIssueSeverity(i) === severity).length;
-}
-
-function qaTypeChips(pairId, issues) {
-  const counts = {};
-  for (const issue of issues || []) {
-    const cat = issue.category || issue.type || "Unknown";
-    counts[cat] = (counts[cat] || 0) + 1;
-  }
-  return Object.entries(counts)
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-    .map(([cat, count]) => qaDetailChip(pairId, `cat:${cat}`, `${cat} (${count})`))
-    .join("");
-}
-
-function qaDetailChip(pairId, value, label) {
-  const active = (window.__qaDetailFilter[pairId] || "all") === value;
-  return `<button type="button" class="chip ${active ? "on" : ""}" onclick="event.preventDefault(); event.stopPropagation(); qaSetDetailFilter('${escAttr(pairId)}','${escAttr(value)}')">${escHtml(label)}</button>`;
-}
-
-function qaSetDetailFilter(pairId, value) {
-  window.__qaDetailFilter[pairId] = value || "all";
-  const state = pairStates.find(s => s.pair && String(s.pair.pair_id) === String(pairId));
-  if (state) qaRenderFileDetailPage(state);
-}
-
-function qaExcerptHtml(text, idx) {
-  const value = String(text || "—");
-  const long = value.length > 260 || value.split("\n").length > 5;
-  return `
-    <div class="snippet-cell ${long ? "collapsed-excerpt" : ""}" id="qa-excerpt-${idx}">${escHtml(value)}</div>
-    ${long ? `<button type="button" class="expand-snippet" onclick="qaToggleExcerpt('qa-excerpt-${idx}', this)">Show More</button>` : ""}
-  `;
-}
-
-function qaToggleExcerpt(id, btn) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const isCollapsed = el.classList.toggle("collapsed-excerpt");
-  btn.textContent = isCollapsed ? "Show More" : "Show Less";
-}
-
-function qaIssueTableHtml(pairId, issues) {
-  if (!issues.length) {
-    return `<div class="no-issues-panel">No issues match this filter.</div>`;
-  }
-  return `
-    <div class="detail-table-wrap">
-      <table class="detail-table">
-        <thead>
-          <tr>
-            <th>No</th>
-            <th>Error Type</th>
-            <th>Severity</th>
-            <th>HTML Line</th>
-            <th>Description</th>
-            <th>Expected</th>
-            <th>Actual</th>
-            <th>Excerpt</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${issues.map((issue, idx) => {
-            const sev = qaIssueSeverity(issue);
-            return `
-              <tr>
-                <td style="font-weight:850">${String(idx + 1).padStart(2, "0")}</td>
-                <td style="font-weight:800;white-space:nowrap">${escHtml(issue.category || issue.type || "—")}</td>
-                <td>${severityPill(sev)}</td>
-                <td class="line-num">${issue.line ? `L${escHtml(issue.line)}` : "—"}</td>
-                <td class="desc-cell">${escHtml(issue.message || issue.description || "—")}</td>
-                <td class="expected-cell">${escHtml(issue.expected || "—")}</td>
-                <td class="actual-cell">${escHtml(issue.actual || "—")}</td>
-                <td>${qaExcerptHtml(issue.snippet || "—", idx)}</td>
-              </tr>`;
-          }).join("")}
-        </tbody>
-      </table>
-    </div>`;
-}
-
-function qaRenderFileDetailPage(state) {
-  const results = document.getElementById("results");
-  if (!results) return;
-
-  const p = state.pair || {};
-  const result = state.result || {};
-  const pairId = p.pair_id || result.pair_id || "";
-  const allIssues = qaSortedIssues(result.issues || []);
-  const currentFilter = window.__qaDetailFilter[pairId] || "all";
-  const visibleIssues = qaFilteredIssues(allIssues, currentFilter);
-
-  const status = (typeof getFileStatus === "function") ? getFileStatus(state) : (result.status || "—");
-  const fileSeverity = (typeof getFileSeverity === "function") ? getFileSeverity(state) : (result.file_severity || "—");
-  const totalErrors = Number(result.issue_count || allIssues.length || 0);
-  const criticalCount = Number(result.critical_count || qaCountBySeverity(allIssues, "Critical"));
-  const majorCount = Number(result.major_count || qaCountBySeverity(allIssues, "Major"));
-  const minorCount = Number(result.minor_count || qaCountBySeverity(allIssues, "Minor"));
-
-  if (state.state === "error") {
-    results.innerHTML = `
-      <div class="file-detail-page">
-        <div class="file-detail-header">
-          <div class="file-detail-title">
-            <button class="back-btn" onclick="renderBatchDashboard()">← Back to Batch Results</button>
-            <h2>File QA Report</h2>
-            <p>${escHtml(p.pdf_name || result.pdf_name || "—")}</p>
-          </div>
-        </div>
-        <div class="file-meta-row">
-          <span class="meta-chip">Batch: ${escHtml(batchId || "—")}</span>
-          <span class="meta-chip">File: ${String(state.file_no || result.file_no || "—").padStart(2, "0")}</span>
-          <span class="meta-chip critical">Status: Error</span>
-        </div>
-        <div class="file-name-box">
-          <div><strong>PDF:</strong> ${escHtml(p.pdf_name || result.pdf_name || "—")}</div>
-          <div><strong>HTML:</strong> ${escHtml(p.html_name || result.html_name || "—")}</div>
-        </div>
-        <div class="no-issues-panel" style="background:#fff1f2;border-color:#fecaca;color:#dc2626;white-space:pre-wrap">${escHtml(state.error || "Unknown error")}</div>
-      </div>`;
-    qaScrollResultsTop();
-    return;
-  }
-
-  results.innerHTML = `
-    <div class="file-detail-page">
-      <div class="file-detail-header">
-        <div class="file-detail-title">
-          <button class="back-btn" onclick="renderBatchDashboard()">← Back to Batch Results</button>
-          <h2>File QA Report</h2>
-          <p>${escHtml(p.pdf_name || result.pdf_name || "—")}</p>
-        </div>
-        <button class="file-download-btn" onclick="dlFileReport('${escAttr(state.job_id || "")}')" ${state.job_id ? "" : "disabled"}>Download File Excel</button>
-      </div>
-
-      <div class="file-meta-row">
-        <span class="meta-chip">Batch: ${escHtml(batchId || "—")}</span>
-        <span class="meta-chip">File: ${String(state.file_no || result.file_no || "—").padStart(2, "0")}</span>
-        <span class="meta-chip">Language: ${escHtml(result.language || "—")}</span>
-        <span class="meta-chip">Status: ${escHtml(status)}</span>
-        <span class="meta-chip ${String(fileSeverity).toLowerCase()}">Severity: ${escHtml(fileSeverity)}</span>
-        <span class="meta-chip">All Errors: ${totalErrors}</span>
-        <span class="meta-chip critical">Critical: ${criticalCount}</span>
-        <span class="meta-chip major">Major: ${majorCount}</span>
-        <span class="meta-chip minor">Minor: ${minorCount}</span>
-      </div>
-
-      <div class="file-name-box">
-        <div><strong>PDF:</strong> ${escHtml(p.pdf_name || result.pdf_name || "—")}</div>
-        <div><strong>HTML:</strong> ${escHtml(p.html_name || result.html_name || "—")}</div>
-      </div>
-
-      <div class="detail-filters">
-        ${qaDetailChip(pairId, "all", `All (${totalErrors})`)}
-        ${qaDetailChip(pairId, "Critical", `Critical (${criticalCount})`)}
-        ${qaDetailChip(pairId, "Major", `Major (${majorCount})`)}
-        ${qaDetailChip(pairId, "Minor", `Minor (${minorCount})`)}
-      </div>
-      <div class="detail-filters">
-        ${qaTypeChips(pairId, allIssues)}
-      </div>
-
-      ${allIssues.length ? qaIssueTableHtml(pairId, visibleIssues) : `<div class="no-issues-panel">✓ No issues found — this file passed QA.</div>`}
-    </div>`;
-  qaScrollResultsTop();
-}
-
-function qaOpenFileDetailPage(pairId) {
-  const state = pairStates.find(s => s.pair && String(s.pair.pair_id) === String(pairId));
-  if (!state) {
-    alert("Could not find this file result.");
-    return;
-  }
-  if (!state.result && state.state !== "error") {
-    alert("Run QA first. This file report is not ready yet.");
-    return;
-  }
-  qaRenderFileDetailPage(state);
-}
-
-function qaScrollResultsTop() {
-  const results = document.getElementById("results");
-  if (results) results.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-// Override duplicate older functions.
-window.openFileDetailPage = qaOpenFileDetailPage;
-window.renderFileDetailPage = qaRenderFileDetailPage;
-window.setFinalDetailFilter = qaSetDetailFilter;
-window.qaSetDetailFilter = qaSetDetailFilter;
-window.qaToggleExcerpt = qaToggleExcerpt;
-
-// Capture clicks before older handlers, so Open Report cannot be swallowed.
-document.addEventListener("click", function(event) {
-  const btn = event.target.closest(".open-report-btn");
-  if (btn) {
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    const pairId = btn.dataset.pairId || (btn.closest("tr[id^='file-row-']")?.id || "").replace(/^file-row-/, "");
-    qaOpenFileDetailPage(pairId);
-    return;
-  }
-
-  const row = event.target.closest("tr.file-row[id^='file-row-']");
-  if (row && !event.target.closest("button, a, input, select, textarea")) {
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    qaOpenFileDetailPage(row.id.replace(/^file-row-/, ""));
-  }
-}, true);
-
-updateUploadCounts();
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-function escHtml(s) { return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-function escAttr(s) { return escHtml(s).replace(/'/g,"&#39;"); }
-
-
-/* ================= FINAL STABLE OVERRIDE: batch ETA + button guard + clean table ================= */
-function qaBatchProcessingFinished() {
-  return pairStates.length > 0 && pairStates.every(s => s.state === "done" || s.state === "error");
-}
-
-function qaBatchExcelAllowed() {
-  // Enable batch Excel only when every file produced a completed QA result.
-  // If any file crashed with state="error", keep it disabled because the report is incomplete.
-  return pairStates.length > 0 && pairStates.every(s => s.state === "done");
-}
-
-function qaFormatEta(seconds) {
-  seconds = Math.max(0, Math.round(Number(seconds) || 0));
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return mins <= 0 ? `${secs}s` : `${mins}m ${secs}s`;
-}
-
-function qaBatchProgressInfo() {
-  const total = pairStates.length;
-  const doneCount = pairStates.filter(s => s.state === "done").length;
-  const errorCount = pairStates.filter(s => s.state === "error").length;
-  const completed = doneCount + errorCount;
-  const queued = pairStates.filter(s => s.state === "queued").length;
-  const running = pairStates.filter(s => s.state === "running").length;
-  const runningState = pairStates.find(s => s.state === "running");
-  const runningProgress = runningState ? Math.max(0, Math.min(100, Number(runningState.progress || 0))) / 100 : 0;
-  const processedUnits = completed + runningProgress;
-  const percent = total ? Math.round((processedUnits / total) * 100) : 0;
-  let etaText = "Calculating...";
-
-  if (qaBatchExcelAllowed()) {
-    etaText = "Completed";
-  } else if (qaBatchProcessingFinished()) {
-    etaText = "Stopped due to error";
-  } else if (window.__qaBatchStartTime && processedUnits > 0) {
-    const elapsedMs = Date.now() - window.__qaBatchStartTime;
-    const avgMsPerFile = elapsedMs / processedUnits;
-    const remainingUnits = Math.max(0, total - processedUnits);
-    etaText = qaFormatEta((avgMsPerFile * remainingUnits) / 1000);
-  }
-
-  return { total, doneCount, errorCount, completed, queued, running, percent, etaText };
-}
-
-function qaRunProgressHtml() {
-  if (!window.__qaBatchStartTime && !pairStates.some(s => s.state === "running")) return "";
-  const info = qaBatchProgressInfo();
-  return `
-    <div class="batch-progress-box" id="batchProgressBox">
-      <div class="batch-progress-top">
-        <strong>${info.completed}/${info.total} files processed</strong>
-        <span>ETA: ${info.etaText}</span>
-      </div>
-      <div class="batch-progress-track">
-        <div class="batch-progress-fill" style="width:${info.percent}%"></div>
-      </div>
-      <div class="batch-progress-meta">
-        <span>${info.doneCount} done</span>
-        <span>${info.errorCount} errors</span>
-        <span>${info.running} running</span>
-        <span>${info.queued} queued</span>
-      </div>
-    </div>`;
-}
-
-function qaUpdateRunProgressBarOnly() {
-  const box = document.getElementById("batchProgressBox");
-  if (box) box.outerHTML = qaRunProgressHtml();
-}
-
-function computeBatchSummary() {
-  const processed = pairStates.filter(s => s.state === "done" || s.state === "error");
-  const done = pairStates.filter(s => s.state === "done");
-  const errorStates = pairStates.filter(s => s.state === "error").length;
-
-  const passed = done.filter(s => getFileSeverity(s) === "Passed").length;
-  const fileCritical = done.filter(s => getFileSeverity(s) === "Critical").length;
-  const fileMajor = done.filter(s => getFileSeverity(s) === "Major").length;
-  const fileMinor = done.filter(s => getFileSeverity(s) === "Minor").length;
-
-  return {
-    total: pairStates.length,
-    completed: processed.length,
-    passed,
-    failed: fileCritical + fileMajor + fileMinor + errorStates,
-    fileCritical,
-    fileMajor,
-    fileMinor,
-  };
-}
-
-function qaRowClassForState(state) {
-  if (state.state === "running") return "row-running";
-  if (state.state === "error") return "row-error";
-  const severity = getFileSeverity(state);
-  if (severity === "Critical") return "row-critical";
-  if (severity === "Major") return "row-major";
-  if (severity === "Minor") return "row-minor";
-  if (severity === "Passed") return "row-passed";
-  return "";
-}
-
-function qaReportButtonHtml(state) {
-  if (state.state === "done") {
-    return `<button type="button" class="open-report-btn open-ready" data-pair-id="${escAttr(state.pair.pair_id)}">Open Report</button>`;
-  }
-  if (state.state === "error") {
-    return `<button type="button" class="open-report-btn open-error" data-pair-id="${escAttr(state.pair.pair_id)}">View Error</button>`;
-  }
-  if (state.state === "running") {
-    return `<button type="button" class="open-report-btn open-running" disabled>Running</button>`;
-  }
-  return `<button type="button" class="open-report-btn open-waiting" disabled>Not Ready</button>`;
-}
-
-function fileRowHtml(state) {
-  const p = state.pair || {};
-  const status = getFileStatus(state);
-  const severity = getFileSeverity(state);
-  const total =
-    state.state === "done"
-      ? Number(state.result?.issue_count || 0)
-      : state.state === "running"
-        ? `${state.progress || 0}%`
-        : state.state === "error"
-          ? "Error"
-          : "—";
-
-  return `
-    <tr id="file-row-${escAttr(p.pair_id)}" class="file-row ${qaRowClassForState(state)}">
-      <td style="font-weight:800">${String(state.file_no).padStart(2, "0")}</td>
-      <td>
-        <div class="file-pair-name">${escHtml(p.pdf_name)}</div>
-        <div class="file-pair-sub">${escHtml(p.html_name)}</div>
-      </td>
-      <td class="file-status-cell">${statusPill(status)}</td>
-      <td class="file-severity-cell">${severityPill(severity)}</td>
-      <td class="file-total-cell" style="font-weight:850">${escHtml(total)}</td>
-      <td>${qaReportButtonHtml(state)}</td>
-    </tr>`;
-}
-
-function qaBatchActionHtml() {
-  if (qaBatchExcelAllowed()) {
-    return `<button class="dl-btn" onclick="dlBatchReport()">Download Batch Excel</button>`;
-  }
-  if (pairStates.some(s => s.state === "error")) {
-    return `<button class="dl-btn" disabled title="Fix failed files before downloading batch report">Batch Excel unavailable</button>`;
-  }
-  return `<button class="dl-btn" disabled title="Available after every file finishes successfully">Batch Excel after completion</button>`;
-}
-
-function renderBatchDashboard() {
-  const results = document.getElementById("results");
-  const summary = computeBatchSummary();
-  const filtered = filterStates(pairStates, frontFilter);
-  results.innerHTML = `
-    <div class="batch-card">
-      <div class="batch-top">
-        <div class="batch-title"><h2>Batch ${escHtml(batchId || "—")}</h2><p>${summary.completed}/${summary.total} files processed</p></div>
-        <div class="batch-actions">${qaBatchActionHtml()}</div>
-      </div>
-      ${qaRunProgressHtml()}
-      <div class="batch-stats">
-        <div class="batch-stat"><strong>${summary.total}</strong><span>Total Files</span></div>
-        <div class="batch-stat"><strong>${summary.failed}</strong><span>Failed</span></div>
-        <div class="batch-stat"><strong>${summary.passed}</strong><span>Passed</span></div>
-        <div class="batch-stat critical"><strong>${summary.fileCritical}</strong><span>Critical Files</span></div>
-        <div class="batch-stat major"><strong>${summary.fileMajor}</strong><span>Major Files</span></div>
-        <div class="batch-stat minor"><strong>${summary.fileMinor}</strong><span>Minor Files</span></div>
-      </div>
-      <div class="batch-filter-row">
-       ${frontChip("all", `All (${summary.total})`)}
-       ${frontChip("Critical", `Critical Only (${summary.fileCritical})`)}
-       ${frontChip("Major", `Major Only (${summary.fileMajor})`)}
-       ${frontChip("Minor", `Minor Only (${summary.fileMinor})`)}
-       ${frontChip("Passed", `Passed (${summary.passed})`)}
-      </div>
-      <div class="file-table-wrap">
-        <table class="file-table">
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>File Pair</th>
-              <th>Status</th>
-              <th>Severity</th>
-              <th>Total Errors</th>
-              <th>Report</th>
-            </tr>
-          </thead>
-          <tbody>${filtered.map(state => fileRowHtml(state)).join("") || `<tr><td colspan="6" style="color:var(--muted);padding:18px">No files match this filter.</td></tr>`}</tbody>
-        </table>
-      </div>
-    </div>`;
-}
-
-function updateRunningFileRow(state) {
-  const row = document.getElementById(`file-row-${state.pair.pair_id}`);
-  if (!row) return;
-
-  row.className = `file-row ${qaRowClassForState(state)}`;
-  const statusCell = row.querySelector(".file-status-cell");
-  const severityCell = row.querySelector(".file-severity-cell");
-  const totalCell = row.querySelector(".file-total-cell");
-  const reportCell = row.querySelector("td:last-child");
-
-  if (statusCell) statusCell.innerHTML = statusPill("Running");
-  if (severityCell) severityCell.innerHTML = severityPill("—");
-  if (totalCell) totalCell.textContent = `${state.progress || 0}%`;
-  if (reportCell) reportCell.innerHTML = qaReportButtonHtml(state);
-  qaUpdateRunProgressBarOnly();
-}
-
-async function pollJob(job_id, state) {
-  while (true) {
-    await sleep(1000);
-    const r = await fetch(`/status/${job_id}`);
-    const job = await r.json();
-
-    state.progress = job.progress || 0;
-    state.label = job.label || "";
-    updateRunningFileRow(state);
-
-    if (job.status === "done") {
-      state.state = "done";
-      state.result = job.result;
-      state.finishedAt = Date.now();
-      state.durationMs = state.startedAt ? state.finishedAt - state.startedAt : null;
-      renderBatchDashboard();
-      return;
-    }
-
-    if (job.status === "error") {
-      state.state = "error";
-      state.error = job.error || "Unknown error";
-      state.finishedAt = Date.now();
-      state.durationMs = state.startedAt ? state.finishedAt - state.startedAt : null;
-      renderBatchDashboard();
-      return;
-    }
-  }
-}
-
-async function runAll() {
-  if (!pairs.length) return;
-  openedPairId = null;
-  frontFilter = "all";
-  window.__qaBatchStartTime = Date.now();
-  document.getElementById("runBtn").disabled = true;
-  pairStates = pairStates.map(s => ({...s, state: "queued", progress: 0, label: "Queued", result: null, error: null, startedAt: null, finishedAt: null, durationMs: null}));
-  renderBatchDashboard();
-
-  for (let i = 0; i < pairStates.length; i++) {
-    const state = pairStates[i];
-    state.state = "running";
-    state.startedAt = Date.now();
-    state.label = `Running ${i + 1}/${pairStates.length}`;
-    renderBatchDashboard();
-    document.getElementById("runBtn").innerHTML = `<span class="spin">⟳</span> Running ${i + 1}/${pairStates.length}…`;
-
-    try {
-      const p = state.pair;
-      const res = await fetch("/run", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({
-          pdf_path: p.pdf_path,
-          html_path: p.html_path,
-          pair_id: p.pair_id,
-          pdf_name: p.pdf_name,
-          html_name: p.html_name,
-          batch_id: batchId,
-          file_no: state.file_no,
-        }),
-      });
-      if (!res.ok) throw new Error(await res.text() || `Failed to start job. HTTP ${res.status}`);
-      const data = await res.json();
-      if (!data.job_id) throw new Error(data.error || "Server did not return a job id.");
-      window._pairJobMap[p.pair_id] = data.job_id;
-      state.job_id = data.job_id;
-      await pollJob(data.job_id, state);
-    } catch (err) {
-      state.state = "error";
-      state.finishedAt = Date.now();
-      state.durationMs = state.startedAt ? state.finishedAt - state.startedAt : null;
-      state.error = err && err.message ? err.message : String(err);
-      renderBatchDashboard();
-    }
-  }
-
-  qaUpdateRunProgressBarOnly();
-  renderBatchDashboard();
-  document.getElementById("runBtn").disabled = false;
-  document.getElementById("runBtn").innerHTML = `<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M3 1.5l9 6-9 6V1.5z" fill="white"/></svg> Run QA on All Pairs`;
-}
-
-function dlBatchReport() {
-  if (!batchId) return;
-  if (!qaBatchExcelAllowed()) {
-    alert("Batch Excel is available only after every file finishes successfully. Fix failed files first.");
-    return;
-  }
-  const a = document.createElement("a");
-  a.href = `/download-batch/${encodeURIComponent(batchId)}`;
-  a.download = `${batchId}_All_Files_QA_Report.xlsx`;
-  a.click();
-}
-
-function qaFinalShortText(text, maxChars = 120) {
-  const raw = String(text || "—");
-  return escHtml(raw.length > maxChars ? raw.slice(0, maxChars) + "…" : raw);
-}
-
-function qaToggleIssueDetails(id, btn) {
-  const row = document.getElementById(id);
-  if (!row) return;
-  row.classList.toggle("open");
-  btn.textContent = row.classList.contains("open") ? "Hide Details" : "Show Details";
-}
-
-function qaIssueTableHtml(pairId, issues) {
-  if (!issues.length) return `<div class="no-issues-panel">No issues match this filter.</div>`;
-  const safePairId = String(pairId || "pair").replace(/[^A-Za-z0-9_-]/g, "");
-  return `
-    <div class="detail-table-wrap">
-      <table class="detail-table">
-        <colgroup>
-          <col class="col-no"><col class="col-type"><col class="col-severity"><col class="col-line">
-          <col class="col-desc"><col class="col-expected"><col class="col-actual"><col class="col-details">
-        </colgroup>
-        <thead>
-          <tr>
-            <th>No</th><th>Error Type</th><th>Severity</th><th>HTML Line</th>
-            <th>Description</th><th>Expected</th><th>Actual</th><th>Details</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${issues.map((issue, idx) => {
-            const sev = qaIssueSeverity(issue);
-            const detailId = `issue-detail-${safePairId}-${idx}`;
-            const fullDesc = issue.message || issue.description || "—";
-            const expected = issue.expected || "—";
-            const actual = issue.actual || "—";
-            const excerpt = issue.snippet || "No excerpt available.";
-            return `
-              <tr>
-                <td style="font-weight:850">${String(idx + 1).padStart(2, "0")}</td>
-                <td style="font-weight:850">${escHtml(issue.category || issue.type || "—")}</td>
-                <td>${severityPill(sev)}</td>
-                <td class="line-num">${issue.line ? `L${escHtml(issue.line)}` : "—"}</td>
-                <td class="desc-cell"><div class="qa-short-text">${qaFinalShortText(fullDesc, 150)}</div></td>
-                <td class="expected-cell"><div class="qa-short-text">${qaFinalShortText(expected, 90)}</div></td>
-                <td class="actual-cell"><div class="qa-short-text">${qaFinalShortText(actual, 90)}</div></td>
-                <td><button type="button" class="details-btn" onclick="qaToggleIssueDetails('${detailId}', this)">Show Details</button></td>
-              </tr>
-              <tr id="${detailId}" class="issue-extra-row">
-                <td colspan="8" class="issue-extra-cell">
-                  <div class="issue-extra-box">
-                    <div class="issue-extra-title">Full Excerpt / Context</div>
-                    <div class="issue-extra-content">${escHtml(excerpt)}</div>
-                  </div>
-                </td>
-              </tr>`;
-          }).join("")}
-        </tbody>
-      </table>
-    </div>`;
-}
-
-
-
-/* ================= FINAL OVERRIDE V2: always-visible ETA while running + hide batch button ================= */
-function qaBatchProcessingFinished() {
-  return pairStates.length > 0 && pairStates.every(s => s.state === "done" || s.state === "error");
-}
-
-function qaBatchExcelAllowed() {
-  // Show the batch Excel button only after every file has finished processing.
-  return qaBatchProcessingFinished();
-}
-
-function qaBatchActionHtml() {
-  if (qaBatchExcelAllowed()) {
-    return `<button class="dl-btn" onclick="dlBatchReport()">Download Batch Excel</button>`;
-  }
-  return `<span class="progress-inline" style="font-weight:800;color:#64748b">Batch Excel available after all files finish</span>`;
-}
-
-function qaFormatEta(seconds) {
-  seconds = Math.max(0, Math.round(Number(seconds) || 0));
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  if (mins <= 0) return `${secs}s`;
-  return `${mins}m ${secs}s`;
-}
-
-function qaBatchProgressInfo() {
-  const total = pairStates.length;
-  const doneCount = pairStates.filter(s => s.state === "done").length;
-  const errorCount = pairStates.filter(s => s.state === "error").length;
-  const completed = doneCount + errorCount;
-  const queued = pairStates.filter(s => s.state === "queued").length;
-  const running = pairStates.filter(s => s.state === "running").length;
-  const runningState = pairStates.find(s => s.state === "running");
-  const runningProgress = runningState ? Math.max(0, Math.min(100, Number(runningState.progress || 0))) / 100 : 0;
-  const processedUnits = completed + runningProgress;
-  const percent = total ? Math.round((processedUnits / total) * 100) : 0;
-
-  let etaText = "Waiting to start";
-  if (qaBatchProcessingFinished()) {
-    etaText = "Completed";
-  } else if (window.__qaBatchStartTime && processedUnits > 0) {
-    const elapsedMs = Date.now() - window.__qaBatchStartTime;
-    const avgMsPerFile = elapsedMs / processedUnits;
-    const remainingUnits = Math.max(0, total - processedUnits);
-    etaText = qaFormatEta((avgMsPerFile * remainingUnits) / 1000);
-  } else if (window.__qaBatchStartTime) {
-    etaText = "Calculating...";
-  }
-
-  return { total, doneCount, errorCount, completed, queued, running, percent, etaText };
-}
-
-function qaRunProgressHtml() {
-  // Show ETA/progress after Run QA is clicked, and keep it visible on the batch page.
-  if (!window.__qaBatchStartTime) return "";
-  const info = qaBatchProgressInfo();
-  return `
-    <div class="batch-progress-box" id="batchProgressBox">
-      <div class="batch-progress-top">
-        <strong>${info.completed}/${info.total} files processed</strong>
-        <span>Estimated time left: ${info.etaText}</span>
-      </div>
-      <div class="batch-progress-track">
-        <div class="batch-progress-fill" style="width:${info.percent}%"></div>
-      </div>
-      <div class="batch-progress-meta">
-        <span>${info.doneCount} done</span>
-        <span>${info.errorCount} errors</span>
-        <span>${info.running} running</span>
-        <span>${info.queued} queued</span>
-      </div>
-    </div>`;
-}
-
-function qaUpdateRunProgressBarOnly() {
-  const box = document.getElementById("batchProgressBox");
-  if (box) box.outerHTML = qaRunProgressHtml();
-}
-
-function renderBatchDashboard() {
-  const results = document.getElementById("results");
-  const summary = computeBatchSummary();
-  const filtered = filterStates(pairStates, frontFilter);
-  results.innerHTML = `
-    <div class="batch-card">
-      <div class="batch-top">
-        <div class="batch-title">
-          <h2>Batch ${escHtml(batchId || "—")}</h2>
-          <p>${summary.completed}/${summary.total} files processed</p>
-        </div>
-        <div class="batch-actions">${qaBatchActionHtml()}</div>
-      </div>
-      ${qaRunProgressHtml()}
-      <div class="batch-stats">
-        <div class="batch-stat"><strong>${summary.total}</strong><span>Total Files</span></div>
-        <div class="batch-stat"><strong>${summary.failed}</strong><span>Failed</span></div>
-        <div class="batch-stat"><strong>${summary.passed}</strong><span>Passed</span></div>
-        <div class="batch-stat critical"><strong>${summary.fileCritical}</strong><span>Critical Files</span></div>
-        <div class="batch-stat major"><strong>${summary.fileMajor}</strong><span>Major Files</span></div>
-        <div class="batch-stat minor"><strong>${summary.fileMinor}</strong><span>Minor Files</span></div>
-      </div>
-      <div class="batch-filter-row">
-       ${frontChip("all", `All (${summary.total})`)}
-       ${frontChip("Critical", `Critical Only (${summary.fileCritical})`)}
-       ${frontChip("Major", `Major Only (${summary.fileMajor})`)}
-       ${frontChip("Minor", `Minor Only (${summary.fileMinor})`)}
-       ${frontChip("Passed", `Passed (${summary.passed})`)}
-      </div>
-      <div class="file-table-wrap">
-        <table class="file-table">
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>File Pair</th>
-              <th>Status</th>
-              <th>Severity</th>
-              <th>Total Errors</th>
-              <th>Report</th>
-            </tr>
-          </thead>
-          <tbody>${filtered.map(state => fileRowHtml(state)).join("") || `<tr><td colspan="6" style="color:var(--muted);padding:18px">No files match this filter.</td></tr>`}</tbody>
-        </table>
-      </div>
-    </div>`;
-}
-
-function dlBatchReport() {
-  if (!batchId) return;
-  if (!qaBatchExcelAllowed()) {
-    alert("Batch Excel is available only after all files finish processing.");
-    return;
-  }
-  const a = document.createElement("a");
-  a.href = `/download-batch/${encodeURIComponent(batchId)}`;
-  a.download = `${batchId}_All_Files_QA_Report.xlsx`;
-  a.click();
-}
-
-async function runAll() {
-  if (!pairs.length) return;
-  openedPairId = null;
-  frontFilter = "all";
-  window.__qaBatchStartTime = Date.now();
-  document.getElementById("runBtn").disabled = true;
-  pairStates = pairStates.map(s => ({...s, state: "queued", progress: 0, label: "Queued", result: null, error: null, startedAt: null, finishedAt: null, durationMs: null}));
-  renderBatchDashboard();
-
-  for (let i = 0; i < pairStates.length; i++) {
-    const state = pairStates[i];
-    state.state = "running";
-    state.startedAt = Date.now();
-    state.label = `Running ${i + 1}/${pairStates.length}`;
-    renderBatchDashboard();
-    document.getElementById("runBtn").innerHTML = `<span class="spin">⟳</span> Running ${i + 1}/${pairStates.length}…`;
-
-    try {
-      const p = state.pair;
-      const res = await fetch("/run", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({
-          pdf_path: p.pdf_path,
-          html_path: p.html_path,
-          pair_id: p.pair_id,
-          pdf_name: p.pdf_name,
-          html_name: p.html_name,
-          batch_id: batchId,
-          file_no: state.file_no,
-        }),
-      });
-      if (!res.ok) throw new Error(await res.text() || `Failed to start job. HTTP ${res.status}`);
-      const data = await res.json();
-      if (!data.job_id) throw new Error(data.error || "Server did not return a job id.");
-      window._pairJobMap[p.pair_id] = data.job_id;
-      state.job_id = data.job_id;
-      await pollJob(data.job_id, state);
-    } catch (err) {
-      state.state = "error";
-      state.finishedAt = Date.now();
-      state.durationMs = state.startedAt ? state.finishedAt - state.startedAt : null;
-      state.error = err && err.message ? err.message : String(err);
-      renderBatchDashboard();
-    }
-  }
-
-  renderBatchDashboard();
-  document.getElementById("runBtn").disabled = false;
-  document.getElementById("runBtn").innerHTML = `<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M3 1.5l9 6-9 6V1.5z" fill="white"/></svg> Run QA on All Pairs`;
-}
-
+const state={user:null,hasUsers:false,loginMode:'user',mode:'pdf',pairs:[],jobs:{},currentRun:null,history:[],adminTab:'dashboard',activeRunReturn:null};
+const $=id=>document.getElementById(id);const root=$('root');
+async function api(url,opt={}){const r=await fetch(url,opt);const raw=await r.text();let data=null;try{data=raw?JSON.parse(raw):{}}catch(e){data={error:raw||('Request failed: '+r.status)}}if(!r.ok)throw new Error(data.error||'Request failed: '+r.status);return data}
+function esc(s){return String(s??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),2500)}
+function chip(v){return `<span class="chip ${esc(v||'')}">${esc(v||'—')}</span>`}
+function isAdmin(){return state.user&&(state.user.role==='admin'||Number(state.user.is_admin)===1)}
+function strong(p,u=''){return p.length>=10&&/[a-z]/.test(p)&&/[A-Z]/.test(p)&&/\d/.test(p)&&/[^A-Za-z0-9]/.test(p)&&!p.includes(' ')&&(!u||!p.toLowerCase().includes(u.toLowerCase()))}
+function authLayout(body){root.innerHTML=`<div class="auth-shell"><div class="auth-card"><section class="auth-visual"><div><span class="brand-badge" style="background:rgba(255,255,255,.14);color:white;border-color:rgba(255,255,255,.25)">QA VALIDATION PORTAL</span><h1>Source to HTML quality control</h1><p>Separate access for users and the single system administrator.</p></div><div class="auth-visual-grid"><div class="auth-info"><b>User access</b>Run PDF/RTF to HTML QA and view personal history.</div><div class="auth-info"><b>Admin access</b>Monitor users, invites, runs, and failed processes.</div><div class="auth-info"><b>Run tracking</b>Prepared, running, completed, failed, and interrupted status.</div><div class="auth-info"><b>Reports</b>Batch reports, file reports, audits, and history.</div></div></section><section class="auth-form">${body}</section></div></div>`}
+async function boot(){const path=location.pathname;if(path.startsWith('/accept-invite/')) return showAcceptInvite(path.split('/').pop());if(path.startsWith('/reset-password/')) return showResetPassword(path.split('/').pop());try{const me=await api('/api/me');state.user=me.user;state.hasUsers=!!me.has_users;if(state.user) return showApp();return showLogin()}catch(e){showLogin(e.message)}}
+function showSetupAdmin(err=''){authLayout(`<h1>Create Admin Account</h1><p>Create the first administrator for this QA portal. After this, users are added through admin invites.</p><div class="field"><label>Company Email</label><input id="email" class="input" placeholder="admin@company.com"></div><div class="field"><label>Username</label><input id="username" class="input" placeholder="admin"></div><div class="field"><label>Password</label><input id="password" type="password" class="input" placeholder="Create strong password"></div><div class="rules">Use at least 10 characters with uppercase, lowercase, number, and symbol.</div><button class="primary" style="width:100%" onclick="setupAdmin()">Create Admin</button>${err?`<div class="error">${esc(err)}</div>`:''}`)}
+async function setupAdmin(){const email=$('email').value.trim().toLowerCase(),username=$('username').value.trim().toLowerCase(),password=$('password').value;if(!strong(password,username))return showSetupAdmin('Use a stronger password.');try{const r=await api('/api/setup-admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,username,password})});state.user=r.user;showApp()}catch(e){showSetupAdmin(e.message)}}
+function showLogin(err='', keepLogin=''){
+const mode=state.loginMode||'user';
+const title=mode==='admin'?'Admin Login':'User Login';
+const label=mode==='admin'?'Admin Email or Username':'Email or Username';
+const placeholder=mode==='admin'?'admin@company.local':'name@company.com';
+authLayout(`<span class="brand-badge">${mode==='admin'?'ADMIN ACCESS':'USER ACCESS'}</span><div class="tabs"><button class="tab ${mode==='user'?'active':''}" onclick="state.loginMode='user';showLogin('', $('login')?$('login').value:'')">User Login</button><button class="tab ${mode==='admin'?'active':''}" onclick="state.loginMode='admin';showLogin('', $('login')?$('login').value:'')">Admin Login</button></div><h1>${title}</h1><div class="field"><label>${label}</label><input id="login" class="input" placeholder="${placeholder}" value="${esc(keepLogin)}" autocomplete="username"></div><div class="field"><label>Password</label><input id="password" type="password" class="input" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()"></div><button class="primary" style="width:100%;margin-top:8px" onclick="login()">${mode==='admin'?'Login as Admin':'Login as User'}</button><div style="text-align:right;margin-top:10px"><button class="ghost" style="font-size:12px" onclick="showForgotPassword($('login')?$('login').value:'')">Forgot password?</button></div>${err?`<div class="error">${esc(err)}</div>`:''}`);
+setTimeout(()=>{const el=$('password'); if(err&&el)el.focus(); else if($('login')&&!keepLogin)$('login').focus();},0);
+}
+async function login(){const currentLogin=$('login').value.trim();try{const r=await api('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({login:currentLogin,password:$('password').value,login_mode:state.loginMode||'user'})});state.user=r.user;showApp()}catch(e){showLogin(e.message,currentLogin)}}
+function showForgotPassword(prefill='',msg='',err=''){authLayout(`<span class="brand-badge">RESET PASSWORD</span><h1>Forgot your password?</h1><p>Enter your username or company email. Your administrator will be notified and can send you a reset link.</p><div class="field"><label>Username or Email</label><input id="fpLogin" class="input" placeholder="name@company.com" value="${esc(prefill)}" onkeydown="if(event.key==='Enter')submitForgotPassword()"></div><button class="primary" style="width:100%;margin-top:8px" onclick="submitForgotPassword()">Send Request</button><div style="text-align:right;margin-top:10px"><button class="ghost" style="font-size:12px" onclick="state.loginMode=state.loginMode||'user';showLogin('', '${esc(prefill)}')">← Back to login</button></div>${msg?`<div class="rules">${esc(msg)}</div>`:''}${err?`<div class="error">${esc(err)}</div>`:''}`);setTimeout(()=>{const el=$('fpLogin');if(el)el.focus()},0);}
+async function submitForgotPassword(){const login=($('fpLogin').value||'').trim();if(!login)return showForgotPassword(login,'','Enter your username or email.');try{const r=await api('/api/forgot-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({login})});showForgotPassword('',r.message||'If that account exists, your administrator has been notified.')}catch(e){showForgotPassword(login,'',e.message)}}
+async function showResetPassword(token,err=''){let info={};try{info=await api('/api/reset-password-info?token='+encodeURIComponent(token))}catch(e){err=e.message}authLayout(`<h1>Reset Password</h1><p>${info.username?`Set a new password for <b>${esc(info.username)}</b>`:'Set a new password.'}</p>${info.valid===false?`<div class="error">${esc(info.invalid_reason)}</div>`:`<div class="field"><label>New Password</label><input id="password" type="password" class="input" placeholder="Create strong password"></div><div class="rules">Use at least 10 characters with uppercase, lowercase, number, and symbol.</div><button class="primary" style="width:100%" onclick="submitResetPassword('${esc(token)}')">Set New Password</button>`}${err?`<div class="error">${esc(err)}</div>`:''}`)}
+async function submitResetPassword(token){const password=$('password').value;if(!strong(password))return showResetPassword(token,'Use a stronger password.');try{await api('/api/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,password})});state.loginMode='user';showLogin('Password updated. Please log in.','')}catch(e){showResetPassword(token,e.message)}}
+async function showAcceptInvite(token,err=''){let inv={};try{inv=await api('/api/invite-info?token='+encodeURIComponent(token))}catch(e){err=e.message}authLayout(`<h1>Accept Invite</h1><p>${inv.email?`Account invite for <b>${esc(inv.email)}</b>`:'Set up your invited account.'}</p>${inv.valid===false?`<div class="error">${esc(inv.invalid_reason)}</div>`:`<div class="field"><label>Username</label><input id="username" class="input" placeholder="choose username"></div><div class="field"><label>Password</label><input id="password" type="password" class="input" placeholder="Create strong password"></div><div class="rules">Use at least 10 characters with uppercase, lowercase, number, and symbol.</div><button class="primary" style="width:100%" onclick="acceptInvite('${esc(token)}')">Create Account</button>`}${err?`<div class="error">${esc(err)}</div>`:''}`)}
+async function acceptInvite(token){const username=$('username').value.trim().toLowerCase(),password=$('password').value;if(!strong(password,username))return showAcceptInvite(token,'Use a stronger password.');try{const r=await api('/api/accept-invite',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,username,password})});state.user=r.user;history.replaceState(null,'','/');showApp()}catch(e){showAcceptInvite(token,e.message)}}
+async function logout(){try{await api('/api/logout',{method:'POST'})}catch(e){} location.href='/'}
+function topbar(){return `<div class="topbar"><div class="logo"><div class="logo-mark"></div><div>Document QA Validation Tool<div style="font-size:12px;color:#64748b;font-weight:700">${isAdmin()?'Admin Console':'User Dashboard'}</div></div></div><div class="user-pill"><div><b>${esc(state.user.username)}</b><span>${esc(state.user.email||'')}</span></div>${chip(state.user.role||'user')}<button class="smallbtn" onclick="logout()">Logout</button></div></div>`}
+function showApp(){isAdmin()?renderAdmin():renderUser()}
+function renderUser(tab='pdf'){state.mode=['pdf','rtf','pdf_word'].includes(tab)?tab:state.mode;root.innerHTML=`<div class="app">${topbar()}<main class="main"><div id="content"></div></main></div>`;renderUserContent(tab)}
+function userTabs(active){return `<div class="tabs"><button class="tab ${active==='pdf'?'active':''}" onclick="renderUserContent('pdf')">PDF ↔ HTML</button><button class="tab ${active==='rtf'?'active':''}" onclick="renderUserContent('rtf')">RTF ↔ HTML</button><button class="tab ${active==='pdf_word'?'active':''}" onclick="renderUserContent('pdf_word')">PDF ↔ WORD</button><button class="tab ${active==='history'?'active':''}" onclick="renderUserContent('history')">My History</button><button class="tab ${active==='profile'?'active':''}" onclick="renderUserContent('profile')">Profile</button></div>`}
+function renderUserContent(tab){
+ const c=$('content');
+ if(tab==='history')return loadMyHistory();
+ if(tab==='profile'){c.innerHTML=`<div class="page-head"><div><div class="page-kicker">Account</div><h1>Your profile</h1><p>Your company account and QA workspace information.</p></div></div>${userTabs('profile')}<div class="card"><h2>Account details</h2><div class="profile-grid"><div class="profile-item"><span>Username</span><b>${esc(state.user.username)}</b></div><div class="profile-item"><span>Company email</span><b>${esc(state.user.email||'—')}</b></div><div class="profile-item"><span>Access</span><b>${esc(state.user.role||'user')}</b></div><div class="profile-item"><span>Workspace</span><b>Document QA Validation</b></div></div></div>`;return}
+ const mode=['pdf','rtf','pdf_word'].includes(tab)?tab:'pdf';
+ state.mode=mode;
+ const cfg={
+  pdf:{title:'PDF ↔ HTML',desc:'Validate converted HTML against the existing semantic, context-mapping, fidelity, and image rules.',source:'PDF Source',target:'Converted HTML',sourceHelp:'Upload the original PDF files or a ZIP containing them.',targetHelp:'Upload the corresponding converted HTML files, HTML ZIP, and image assets if required.',sourceAccept:'.pdf,.zip',targetAccept:'.html,.htm,.zip,.png,.jpg,.jpeg,.gif,.webp,.bmp,.svg'},
+  rtf:{title:'RTF ↔ HTML',desc:'Validate converted HTML using the same existing QA/context-mapping logic, including multilingual text and images.',source:'RTF Source',target:'Converted HTML',sourceHelp:'Upload the RTF files or RTF package ZIP.',targetHelp:'Upload the corresponding converted HTML files/package ZIP and image assets.',sourceAccept:'.rtf,.zip',targetAccept:'.html,.htm,.zip,.png,.jpg,.jpeg,.gif,.webp,.bmp,.svg'},
+  pdf_word:{title:'PDF ↔ WORD',desc:'Validate PDF and Word conversions with the same reporting approach, including text, structure, tables, and images.',source:'PDF File',target:'WORD File',sourceHelp:'Upload the original PDF files or a ZIP containing them.',targetHelp:'Upload the corresponding DOCX files or a ZIP containing them.',sourceAccept:'.pdf,.zip',targetAccept:'.docx,.zip'}
+ }[mode];
+ c.innerHTML=`<div class="page-head"><div><div class="page-kicker">QA Workspace</div><h1>${cfg.title} Validation</h1><p>${cfg.desc}</p></div></div>${userTabs(mode)}<div class="workspace"><div class="card"><h2>Start a validation run</h2><p class="hint" style="margin-top:-4px;margin-bottom:18px">Submit the two sides separately. The tool will pair matching documents before QA starts.</p><div class="upload-grid"><div class="upload-box"><div class="upload-icon">↑</div><div class="upload-title"><h3>1. ${cfg.source}</h3><span class="format-pill">Source</span></div><p class="hint">${cfg.sourceHelp}</p><label class="choose-files" for="sourceFiles">Choose Files</label><input id="sourceFiles" class="file-picker" type="file" multiple accept="${cfg.sourceAccept}" onchange="showSelectedFiles('sourceFiles','sourceSelected')"><div id="sourceSelected" class="selected-files">No files selected</div></div><div class="upload-box"><div class="upload-icon">↓</div><div class="upload-title"><h3>2. ${cfg.target}</h3><span class="format-pill">Target</span></div><p class="hint">${cfg.targetHelp}</p><label class="choose-files" for="targetFiles">Choose Files</label><input id="targetFiles" class="file-picker" type="file" multiple accept="${cfg.targetAccept}" onchange="showSelectedFiles('targetFiles','targetSelected')"><div id="targetSelected" class="selected-files">No files selected</div></div></div><div class="run-actions"><div class="run-note"><b>Next: prepare file pairs</b>The tool keeps the existing QA engine and context-mapping/reporting flow. It only changes how the two document sides are submitted.</div><button class="primary" onclick="preparePairs()">Prepare File Pairs →</button></div></div></div><div id="runArea"></div>`
+}
+function showSelectedFiles(inputId,outputId){const input=$(inputId),out=$(outputId);if(!input||!out)return;const files=[...input.files];if(!files.length){out.textContent='No files selected';out.classList.remove('has-files');return}out.innerHTML=files.map(f=>`<div>✓ ${esc(f.name)}</div>`).join('');out.classList.add('has-files')}
+async function preparePairs(){
+ const sourceInput=$('sourceFiles'),targetInput=$('targetFiles');
+ const sourceFiles=[...(sourceInput?.files||[])],targetFiles=[...(targetInput?.files||[])];
+ if(!sourceFiles.length||!targetFiles.length)return toast('Choose files for both Source and Target.');
+ // Do not let a stale tab/mode state misclassify a package. If the selected
+ // source files are explicit RTF/PDF files, use their real extension. ZIPs are
+ // resolved again by the server from their extracted contents.
+ const explicitSourceExts=new Set(sourceFiles.map(f=>{const n=f.name.toLowerCase();return n.endsWith('.rtf')?'rtf':n.endsWith('.pdf')?'pdf':null}).filter(Boolean));
+ if(state.mode!=='pdf_word'&&explicitSourceExts.size===1) state.mode=[...explicitSourceExts][0];
+ // Every upload is a brand-new validation run, even if the exact same files were uploaded before.
+ state.pairs=[]; state.jobs={}; state.currentRun=null; state.activeRunReturn=null;
+ const fd=new FormData();
+ fd.append('source_type',state.mode);
+ fd.append('upload_instance_id',crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random());
+ [...sourceFiles,...targetFiles].forEach(f=>{fd.append('files',f);fd.append('relpaths',f.webkitRelativePath||f.name)});
+ try{
+   const r=await api('/upload',{method:'POST',body:fd});
+   // The backend inspects ZIP contents and is authoritative about the source type.
+   if(['pdf','rtf'].includes(r.source_type)) state.mode=r.source_type;
+   state.pairs=r.pairs||[]; state.currentRun=r.run_id||r.batch_id;
+   renderPairs(r);
+ }catch(e){toast(e.message)}
+}
+function renderPairs(r){
+ const modeLabel=state.mode==='pdf_word'?'PDF ↔ WORD':state.mode==='rtf'?'RTF ↔ HTML':'PDF ↔ HTML';
+ state.unmatchedDetails=r.unmatched_details||[];
+ state.uploadedFileCount=(state.pairs.length*2)+state.unmatchedDetails.length;
+ const unmatched=state.unmatchedDetails;
+ const unmatchedBlock=unmatched.length?`<div class="unmatched-box"><div class="unmatched-head"><b>Unmatched files (${unmatched.length})</b><span>Exact source/target filenames are shown below.</span></div><table class="unmatched-table"><thead><tr><th>Source file</th><th>Target file</th><th>Why unmatched</th></tr></thead><tbody>${unmatched.map(x=>`<tr><td>${x.side==='Source'?`<b>${esc(x.filename||'')}</b>`:'—'}</td><td>${x.side==='Target'?`<b>${esc(x.filename||'')}</b>`:'—'}</td><td>${esc(x.reason||'No corresponding file found')}</td></tr>`).join('')}</tbody></table></div>`:'';
+ $('runArea').innerHTML=`<div class="card prepared-card"><div class="prepared-header"><div><h2>Prepared Pairs · ${modeLabel}</h2><p class="hint">Run ID: ${esc(state.currentRun)} · ${state.pairs.length} matched pair${state.pairs.length===1?'':'s'}${unmatched.length?` · ${unmatched.length} unmatched`:''}</p></div></div>${unmatchedBlock}<div class="actions" style="margin:14px 0 12px"><button class="primary" onclick="runAll()">Run QA on All Pairs</button></div><table><thead><tr><th>No</th><th>Source</th><th>Target</th><th>Status</th><th>Progress</th><th>Severity</th><th>Errors</th><th>Actions</th></tr></thead><tbody>${state.pairs.map((p,i)=>`<tr id="row${i}"><td>${i+1}</td><td>${esc(p.source_name||p.pdf_name)}</td><td>${esc(p.target_name||p.html_name)}</td><td>${chip(p.status||'queued')}</td><td><div class="progress"><div class="bar"></div></div></td><td>${p.file_severity?chip(p.file_severity):'—'}</td><td>${p.issue_count??'—'}</td><td>${p.status==='done'?`<button class="linkbtn" onclick='openReport(${JSON.stringify(p).replace(/'/g,"&#39;")})'>Open Report</button>`:''}</td></tr>`).join('')}</tbody></table></div>`;
+ state.pairs.forEach((p,i)=>{if(p.status==='done')setRow(i,'done',100,p,p.error_message||'',p.job_id||'');else if(p.status==='running')setRow(i,'running',0,null,'',p.job_id||'');});
+}
+function batchModeLabel(){return state.mode==='pdf_word'?'PDF ↔ WORD':state.mode==='rtf'?'RTF ↔ HTML':'PDF ↔ HTML'}
+function formatDuration(sec){if(!isFinite(sec)||sec<0)return 'Estimating…';sec=Math.max(0,Math.round(sec));if(sec<60)return `${sec}s`;const m=Math.floor(sec/60),s=sec%60;if(m<60)return `${m}m ${s}s`;const h=Math.floor(m/60),mm=m%60;return `${h}h ${mm}m`}
+function completedCount(){return state.pairs.filter(p=>p.status==='done'||p.status==='error'||p.status==='interrupted').length}
+function passedCount(){return state.pairs.filter(p=>p.status==='done'&&Number(p.issue_count||0)===0).length}
+function failedCount(){return state.pairs.filter(p=>p.status==='done'&&Number(p.issue_count||0)>0||p.status==='error'||p.status==='interrupted').length}
+function totalErrorCount(){return state.pairs.reduce((n,p)=>n+Number(p.issue_count||0),0)}
+function averageCompletedSeconds(){
+ const durations=state.pairs.map(p=>{if(p._durationSec&&p._durationSec>0)return p._durationSec;if(!p.started_at||!p.finished_at)return null;const a=Date.parse(p.started_at),b=Date.parse(p.finished_at);return isFinite(a)&&isFinite(b)&&b>=a?(b-a)/1000:null}).filter(x=>x!==null&&x>0);
+ if(durations.length)return durations.reduce((a,b)=>a+b,0)/durations.length;
+ const active=state.pairs.find(p=>p.status==='running'&&p._startedMs);
+ if(active&&active._progress>0){const elapsed=(Date.now()-active._startedMs)/1000;return elapsed/(active._progress/100)}
+ return null;
+}
+function estimatedRemainingSeconds(){
+ const remaining=state.pairs.filter(p=>!['done','error','interrupted'].includes(p.status)).length;
+ if(!remaining)return 0;
+ const avg=averageCompletedSeconds();
+ if(!avg)return NaN;
+ const active=state.pairs.find(p=>p.status==='running'&&p._startedMs);
+ let currentRemaining=0;
+ if(active&&active._progress>0){const elapsed=(Date.now()-active._startedMs)/1000;currentRemaining=Math.max(0,avg-elapsed)}
+ else if(active)currentRemaining=avg;
+ const queued=Math.max(0,remaining-(active?1:0));
+ return currentRemaining+(queued*avg);
+}
+function updateBatchDashboard(){
+ const done=completedCount(),total=state.pairs.length,progress=total?Math.round(done/total*100):100;
+ const el=$('batchOverview');if(!el)return;
+ const cards=[['Total Files',state.uploadedFileCount||total*2],['Matched Pairs',total],['Unmatched Files',(state.unmatchedDetails||[]).length],['Total Errors',totalErrorCount()],['Passed Files',passedCount()],['Failed Files',failedCount()],['Estimated Time',formatDuration(estimatedRemainingSeconds())]];
+ el.innerHTML=cards.map((x,i)=>`<div class="batch-stat ${i===6?'accent':''}"><small>${x[0]}</small><b>${esc(x[1])}</b></div>`).join('');
+ const bar=$('batchProgressBar'),label=$('batchProgressLabel'),time=$('batchProgressTime');if(bar)bar.style.width=progress+'%';if(label)label.textContent=`${done} of ${total} matched pairs completed · ${progress}%`;if(time)time.textContent=done===total?'Completed':`Estimated remaining: ${formatDuration(estimatedRemainingSeconds())}`;
+ const dl=$('batchDl');const allDone=total>0&&done===total;if(dl){dl.classList.toggle('hidden',!allDone);dl.setAttribute('aria-disabled',String(!allDone));}
+ const note=$('batchStatusNote');if(note){note.innerHTML=allDone?`<span class="batch-complete">All matched files have finished QA.</span>`:`<span><b>QA is running.</b> The estimate updates as each file finishes.</span>`}
+}
+function issueTagsForPair(p){
+ const tags=new Set();
+ const issues=Array.isArray(p.issues)?p.issues:[];
+ const add=(t)=>{if(t)tags.add(t)};
+ for(const er of issues){
+   const sev=String(er.severity||'').toLowerCase();
+   if(sev==='critical')add('critical'); else if(sev==='major')add('major'); else if(sev==='minor')add('minor');
+   const text=String([er.category,er.area,er.message,er.expected,er.actual].filter(Boolean).join(' ')).toLowerCase();
+   if(/\bb\s*tag\b|<b>|bold|strong/.test(text))add('b-tags');
+   if(/structure|tag attribute|tag nesting|style|title|list|bullet|semantic/.test(text))add('structure');
+   if(/context|text mapping|missing text|extra text|changed text|paragraph/.test(text))add('context');
+   if(/image|picture|broken image/.test(text))add('images');
+   if(/missing|extra/.test(text))add('missing-extra');
+ }
+ if(p.status==='done' && !issues.length) add('passed');
+ if(p.status==='error'||p.status==='interrupted')add('failed');
+ return [...tags];
+}
+function pairMatchesFilter(p,query,filter){
+ const hay=String([p.source_name,p.target_name,p.html_name,p.pdf_name].filter(Boolean).join(' ')).toLowerCase();
+ if(query && !hay.includes(query.toLowerCase()))return false;
+ if(filter==='all')return true;
+ return issueTagsForPair(p).includes(filter);
+}
+function applyQaFilters(){
+ const query=($('qaFileSearch')?.value||'').trim();const filter=state.qaFilter||'all';let visible=0;
+ state.pairs.forEach((p,i)=>{const tr=$('row'+i);if(!tr)return;const show=pairMatchesFilter(p,query,filter);tr.classList.toggle('batch-row-hidden',!show);if(show)visible++;});
+ const count=$('qaFilterCount');if(count)count.textContent=`Showing ${visible} of ${state.pairs.length} files`;
+ document.querySelectorAll('.qa-filter-tag').forEach(b=>b.classList.toggle('active',b.dataset.filter===filter));
+}
+function setQaFilter(filter){state.qaFilter=filter;applyQaFilters()}
+function refreshPairRowTags(){applyQaFilters()}
+function renderBatchRunPage(){
+ const modeLabel=batchModeLabel();
+ state.qaFilter=state.qaFilter||'all';
+ const filters=[['all','All'],['critical','Critical'],['major','Major'],['minor','Minor'],['b-tags','B Tags'],['structure','Structure'],['context','Context / Text'],['images','Images'],['missing-extra','Missing / Extra'],['passed','Passed']];
+ const unmatched=state.unmatchedDetails||[];
+ const unmatchedBlock=unmatched.length?`<div class="unmatched-box"><div class="unmatched-head"><b>Unmatched files (${unmatched.length})</b><span>These files were uploaded but could not be paired, so they were not sent to QA.</span></div><table class="unmatched-table"><thead><tr><th>Source file</th><th>Target file</th><th>Why unmatched</th></tr></thead><tbody>${unmatched.map(x=>`<tr><td>${x.side==='Source'?`<b>${esc(x.filename||'')}</b>`:'—'}</td><td>${x.side==='Target'?`<b>${esc(x.filename||'')}</b>`:'—'}</td><td>${esc(x.reason||'No corresponding file found')}</td></tr>`).join('')}</tbody></table></div>`:'';
+ $('runArea').innerHTML=`<div class="card"><div class="prepared-header"><div><h2>QA Analysis · ${modeLabel}</h2><p class="hint">Run ID: ${esc(state.currentRun)} · Uploaded files: ${state.uploadedFileCount||state.pairs.length*2+unmatched.length} · ${unmatched.length} unmatched</p></div><button class="secondary" onclick="returnToValidationWorkspace()">← Back to Validation</button></div>${unmatchedBlock}<div id="batchOverview" class="batch-overview"></div><div class="batch-progress-wrap"><div class="batch-progress-head"><span id="batchProgressLabel">0 of ${state.pairs.length} matched pairs completed · 0%</span><span id="batchProgressTime" class="batch-estimate">Updating…</span></div><div class="batch-progress-track"><div id="batchProgressBar" class="batch-progress-bar"></div></div></div><div class="batch-actions"><div id="batchStatusNote" class="batch-note"><span><b>QA is starting.</b></span></div><a class="linkbtn hidden" id="batchDl" href="/download-batch/${encodeURIComponent(state.currentRun)}">Download Batch Excel</a></div><div class="qa-filter-bar"><input id="qaFileSearch" class="qa-search" placeholder="Search source or target file name…" oninput="applyQaFilters()"><span id="qaFilterCount" class="qa-filter-count">Showing ${state.pairs.length} of ${state.pairs.length} files</span><div class="qa-filter-tags">${filters.map(([v,l])=>`<button type="button" class="qa-filter-tag ${v==='all'?'active':''} ${v}" data-filter="${v}" onclick="setQaFilter('${v}')">${l}</button>`).join('')}</div></div><table><thead><tr><th>No</th><th>Source</th><th>Target</th><th>Status</th><th>Progress</th><th>Severity</th><th>Errors</th><th>Actions</th></tr></thead><tbody>${state.pairs.map((p,i)=>`<tr id="row${i}"><td>${i+1}</td><td>${esc(p.source_name||p.pdf_name)}</td><td>${esc(p.target_name||p.html_name)}</td><td>${chip(p.status||'queued')}</td><td><div class="progress"><div class="bar"></div></div></td><td>${p.file_severity?chip(p.file_severity):'—'}</td><td>${p.issue_count??0}</td><td>${p.status==='done'?`<button class="linkbtn" onclick='openReport(${JSON.stringify({...p,run_id:p.run_id||state.currentRun}).replace(/'/g,"&#39;")})'>Open Report</button>`:'—'}</td></tr>`).join('')}</tbody></table></div>`;
+ state.pairs.forEach((p,i)=>{if(p.status==='done')setRow(i,'done',100,p,p.error_message||'',p.job_id||'');else if(p.status==='running')setRow(i,'running',p._progress||0,null,'',p.job_id||'');});
+ updateBatchDashboard();applyQaFilters();
+}
+function returnToValidationWorkspace(){renderUserContent(state.mode)}
+async function runAll(){
+ renderBatchRunPage();
+ for(let i=0;i<state.pairs.length;i++){
+   const status=state.pairs[i].status||'queued';
+   if(status==='done'||status==='error'||status==='interrupted')continue;
+   if(status==='running'&&state.pairs[i].job_id){await pollJob(i,state.pairs[i].job_id);continue;}
+   await runOne(i);
+ }
+ updateBatchDashboard();
+}
+async function runOne(i){
+ const p=state.pairs[i];p._startedMs=Date.now();p._progress=0;setRow(i,'running',0);
+ try{
+   const r=await api('/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...p,batch_id:state.currentRun,file_no:i+1})});
+   state.pairs[i].job_id=r.job_id;state.pairs[i].status='running';await pollJob(i,r.job_id);
+ }catch(e){state.pairs[i].status='error';setRow(i,'error',0,null,e.message);updateBatchDashboard();}
+}
+async function pollJob(i,jobId){
+ while(true){
+   await new Promise(res=>setTimeout(res,700));
+   try{let j=await api('/status/'+jobId);state.pairs[i]._progress=Number(j.progress||0);setRow(i,j.status,j.progress,j.result,j.error,jobId);state.pairs[i].status=j.status;state.pairs[i].job_id=jobId;updateBatchDashboard();if(j.status==='done'||j.status==='error')break;}
+   catch(e){break;}
+ }
+}
+function setRow(i,status,progress=0,result=null,error='',jobId=''){
+ const tr=$('row'+i);if(!tr)return;
+ const cells=tr.children;cells[3].innerHTML=chip(status);
+ const progressCell=cells[4];const progressBar=progressCell?.querySelector?.('.bar');if(progressBar)progressBar.style.width=(progress||0)+'%';
+ if(result){cells[5].innerHTML=chip(result.file_severity||'Passed');cells[6].textContent=result.issue_count??0;cells[7].innerHTML=`<div class="actions"><button class="linkbtn" onclick='openReport(${JSON.stringify({...result,run_id:result.run_id||state.currentRun}).replace(/'/g,"&#39;")})'>Open Report</button><a class="linkbtn" href="/download/${jobId}" ${jobId?'':'style="display:none"'}>Download Excel</a></div>`;state.pairs[i]={...state.pairs[i],...result,status:'done',job_id:jobId||state.pairs[i].job_id,_finishedMs:Date.now(),_durationSec:state.pairs[i]._startedMs?Math.max(0,(Date.now()-state.pairs[i]._startedMs)/1000):null};}
+ else if(error){cells[7].innerHTML=`<span class="chip error">${esc(error.slice(0,80))}</span>`;}
+ updateBatchDashboard();applyQaFilters();
+}
+async function restoreRun(runId){
+ try{
+  const r=await api('/api/history/'+encodeURIComponent(runId));
+  state.currentRun=runId;
+  state.mode=['pdf','rtf','pdf_word'].includes(r.run.source_type)?r.run.source_type:'pdf';
+  state.unmatchedDetails=r.unmatched_details||[];
+  state.pairs=(r.files||[]).map(f=>({...f,target_name:f.target_name||f.html_name,html_name:f.html_name,run_id:runId,file_pair_db_id:f.id,status:f.status||'queued',job_id:f.job_id||'',file_severity:f.file_severity||'',issue_count:Number(f.issue_count||0),critical_count:Number(f.critical_count||0),major_count:Number(f.major_count||0),minor_count:Number(f.minor_count||0),issues:Array.isArray(f.issues)?f.issues:[],started_at:f.started_at||'',finished_at:f.finished_at||''}));
+  state.uploadedFileCount=Number(r.run.uploaded_file_count||0)||state.pairs.length*2+state.unmatchedDetails.length;
+  state.activeRunReturn={runId};
+  // Rebuild the normal user dashboard shell, including the PDF/HTML, RTF/HTML and PDF/WORD tabs.
+  root.innerHTML=`<div class="app">${topbar()}<main class="main"><div id="content"></div></main></div>`;
+  const c=$('content');
+  c.innerHTML=`<div class="page-head"><div><div class="page-kicker">QA Workspace</div><h1>${batchModeLabel()} Validation</h1><p>Continue or review this existing QA run. Your uploaded files and results are preserved.</p></div></div>${userTabs(state.mode)}<div id="runArea"></div>`;
+  renderBatchRunPage();
+  state.pairs.forEach((p,i)=>{if(p.status==='running'&&p.job_id)pollJob(i,p.job_id);});
+ }catch(e){toast(e.message)}
+}
+async function openReport(result){
+ state.activeRunReturn={runId:result.run_id||state.currentRun};
+ const initialIssues=Array.isArray(result.issues)?result.issues:[];
+ root.innerHTML=`<div class="app">${topbar()}<main class="main report-page"><div class="report-title"><div><button class="secondary" onclick="returnToRun()">← Back to QA Run</button><h1>File Report</h1><p>${esc(result.source_name||result.pdf_name)} → ${esc(result.target_name||result.html_name)}</p></div><a class="linkbtn" href="/download-file/${result.file_pair_db_id}">Download Excel</a></div><div class="summary-strip"><div class="mini"><small>Status</small><b>${esc(result.status||'')}</b></div><div class="mini"><small>Severity</small><b>${esc(result.file_severity||'')}</b></div><div class="mini"><small>Errors</small><b>${esc(result.issue_count??initialIssues.length)}</b></div><div class="mini"><small>Critical</small><b>${esc(result.critical_count??0)}</b></div><div class="mini"><small>Major</small><b>${esc(result.major_count??0)}</b></div><div class="mini"><small>Minor</small><b>${esc(result.minor_count??0)}</b></div></div><div id="fileReportBody" class="card"><p class="hint">Loading QA issues…</p></div></main></div>`;
+ const renderIssues=(issues)=>{
+   const body=$('fileReportBody');
+   if(!body)return;
+   body.innerHTML=`<div class="table-scroll"><table class="report-table"><thead><tr><th>No</th><th>Error Type</th><th>Severity</th><th>Target Location</th><th>Expected</th><th>Actual</th><th>Description</th><th>Details</th></tr></thead><tbody>${(issues||[]).map((er,idx)=>issueRow(er,idx)).join('')||'<tr><td colspan="8">No issues found.</td></tr>'}</tbody></table></div>`;
+ };
+ // The QA run already contains the authoritative saved issues. Render them directly first.
+ // This avoids losing the report if the browser is connected to a server instance that does not yet expose the optional API route.
+ if(initialIssues.length || Number(result.issue_count||0)===0){
+   renderIssues(initialIssues);
+   return;
+ }
+ // Fallback for older run payloads that contain only summary counts.
+ try{
+   const authoritative=await api('/api/file-report/'+encodeURIComponent(result.file_pair_db_id));
+   renderIssues(authoritative.issues||[]);
+ }catch(e){
+   const body=$('fileReportBody');
+   if(body)body.innerHTML=`<div class="error">Unable to load the saved QA issues. The QA run contains ${esc(result.issue_count||0)} saved errors, but this server instance did not return their details. Restart the Flask server with the updated server.py and refresh the page.</div>`;
+ }
+}
+async function returnToRun(){if(state.activeRunReturn?.runId)return restoreRun(state.activeRunReturn.runId);showApp();}
+function issueRow(er,idx){const id='d'+idx;return `<tr><td>${idx+1}</td><td>${chip(er.category)}</td><td>${chip(er.severity)}</td><td>${esc(er.line||'—')}</td><td class="truncate" title="${esc(er.expected)}">${esc(er.expected||'—')}</td><td class="truncate" title="${esc(er.actual)}">${esc(er.actual||'—')}</td><td>${esc(er.message||'')}</td><td><button class="smallbtn" onclick="const el=document.getElementById('${id}');if(el)el.classList.toggle('hidden')">Show More</button></td></tr><tr id="${id}" class="expand-row hidden"><td colspan="8"><div class="detail-box"><div class="detail-block"><b>Full Expected</b>${esc(er.expected||'—')}</div><div class="detail-block"><b>Full Actual</b>${esc(er.actual||'—')}</div><div class="detail-block"><b>Context / Snippet</b>${esc(er.snippet||'—')}</div></div></td></tr>`}
+async function loadMyHistory(){const c=$('content');c.innerHTML=`${userTabs('history')}<div class="card"><h2>My History</h2><p class="hint">Loading...</p></div>`;try{const r=await api('/api/history');c.innerHTML=`${userTabs('history')}<div class="card"><h2>My History</h2>${runsTable(r.runs||[])}</div>`}catch(e){toast(e.message)}}
+function runsTable(runs){return `<table><thead><tr><th>Run</th><th>When</th><th>Type</th><th>Status</th><th>Total</th><th>Passed</th><th>Failed</th><th>Actions</th></tr></thead><tbody>${runs.map(r=>`<tr><td>${esc(r.run_id)}</td><td>${esc(r.created_at)}</td><td>${esc(r.source_type)}</td><td>${chip(r.status)}</td><td>${r.total_files}</td><td>${r.passed_files}</td><td>${r.failed_files}</td><td><div class="actions"><button class="linkbtn" onclick="viewRun('${esc(r.run_id)}')">View Files</button><a class="linkbtn" href="/download-batch/${encodeURIComponent(r.run_id)}">Batch Excel</a></div></td></tr>`).join('')||'<tr><td colspan="8">No runs yet.</td></tr>'}</tbody></table>`}
+async function viewRun(runId){try{const r=await api('/api/history/'+encodeURIComponent(runId));root.innerHTML=`<div class="app">${topbar()}<main class="main"><button class="secondary" onclick="showApp()">← Back</button><div class="card"><h2>Run Details</h2><p class="hint">${esc(runId)} · Ran by ${esc(r.run.ran_by||r.run.username_snapshot||'')}</p>${fileTable(r.files||[])}</div></main></div>`}catch(e){toast(e.message)}}
+function fileTable(files){return `<table><thead><tr><th>No</th><th>Source</th><th>Target</th><th>Status</th><th>Severity</th><th>Errors</th><th>Message</th><th>Report</th></tr></thead><tbody>${files.map(f=>`<tr><td>${f.file_no}</td><td>${esc(f.source_name)}</td><td>${esc(f.target_name||f.html_name)}</td><td>${chip(f.status)}</td><td>${chip(f.file_severity||'—')}</td><td>${f.issue_count||0}</td><td>${esc(f.status_message||f.error_message||'')}</td><td>${f.report_path?`<a class="linkbtn" href="/download-file/${f.id}">Download</a>`:'—'}</td></tr>`).join('')}</tbody></table>`}
+function renderAdmin(){root.innerHTML=`<div class="app">${topbar()}<div class="layout"><aside class="sidebar"><div class="side-title">Admin Panel</div>${['dashboard','users','runs','problems','invites','resets','logs'].map(t=>`<button class="side-btn ${state.adminTab===t?'active':''}" onclick="adminTab('${t}')">${({dashboard:'Dashboard',users:'Users',runs:'All Runs',problems:'Failed / Interrupted',invites:'Invites',resets:'Password Resets',logs:'Audit Logs'})[t]}</button>`).join('')}<button class="side-btn" onclick="logout()">Logout</button></aside><main class="main"><div id="adminContent"></div></main></div></div>`;adminTab(state.adminTab||'dashboard')}
+async function adminTab(t){state.adminTab=t;document.querySelectorAll('.side-btn').forEach(b=>b.classList.remove('active'));const c=$('adminContent');if(!c)return;try{if(t==='dashboard'){const s=await api('/api/admin/summary');c.innerHTML=`<div class="page-head"><div><h1>Admin Dashboard</h1><p>Monitor users, invites, QA runs, failures, and downloads.</p></div></div><div class="grid">${Object.entries({Users:s.users,Active:s.active_users,Invites:s.pending_invites,'Password Resets':s.pending_resets,Runs:s.runs,Completed:s.completed_runs,Failed:s.failed_runs,Interrupted:s.interrupted_runs,Critical:s.critical_issues}).map(([k,v])=>`<div class="stat"><small>${k}</small><b>${v}</b></div>`).join('')}</div>`}
+else if(t==='users'){const r=await api('/api/admin/users');c.innerHTML=`<div class="page-head"><div><h1>Users</h1><p>Company users and access status.</p></div></div><div class="card"><table><thead><tr><th>Username</th><th>Company Email</th><th>Role</th><th>Status</th><th>Last Login</th><th>Runs</th><th>Actions</th></tr></thead><tbody>${r.users.map(u=>`<tr><td>${esc(u.username)}</td><td>${esc(u.email)}</td><td>${chip(u.role)}</td><td>${chip(u.status)}</td><td>${esc(u.last_login_at||'—')}</td><td>${u.total_runs||0}</td><td><div class="actions">${u.role==='admin'?'Fixed Admin':`<button class="smallbtn" onclick="setUserStatus(${u.id},'${u.status==='active'?'disabled':'active'}')">${u.status==='active'?'Disable':'Activate'}</button>`}</div></td></tr>`).join('')}</tbody></table></div>`}
+else if(t==='runs'){const r=await api('/api/admin/runs');c.innerHTML=`<div class="page-head"><div><h1>All Runs</h1><p>Every QA batch across all users.</p></div></div><div class="card">${adminRunsTable(r.runs||[])}</div>`}
+else if(t==='problems'){const r=await api('/api/admin/problem-runs');c.innerHTML=`<div class="page-head"><div><h1>Failed / Interrupted</h1><p>Runs that did not complete normally.</p></div></div><div class="card">${adminRunsTable(r.runs||[])}</div>`}
+else if(t==='invites'){const r=await api('/api/admin/invites');c.innerHTML=`<div class="page-head"><div><h1>Invites</h1><p>Invite users by company email. Copy the generated invite link and send it to them.</p></div></div><div class="card"><h2>Create Invite</h2><div class="upload-grid"><div class="field"><label>Company Email</label><input id="inviteEmail" class="input" placeholder="person@company.com"></div><div class="field"><label>Account Type</label><input class="input" value="Normal User" readonly></div></div><button class="primary" onclick="createInvite()">Create Invite Link</button><div id="inviteOut"></div></div><div class="card"><h2>Invite History</h2><table><thead><tr><th>Email</th><th>Role</th><th>Status</th><th>Expires</th><th>Created</th></tr></thead><tbody>${r.invites.map(i=>`<tr><td>${esc(i.email)}</td><td>${chip(i.role)}</td><td>${chip(i.status)}</td><td>${esc(i.expires_at)}</td><td>${esc(i.created_at)}</td></tr>`).join('')||'<tr><td colspan="5">No invites.</td></tr>'}</tbody></table></div>`}
+else if(t==='resets'){await renderAdminResets(c)}
+else if(t==='logs'){const r=await api('/api/admin/audit-logs');c.innerHTML=`<div class="page-head"><div><h1>Audit Logs</h1><p>Login, invite, run, and report activity.</p></div></div><div class="card"><table><thead><tr><th>Time</th><th>User</th><th>Email</th><th>Action</th><th>Details</th></tr></thead><tbody>${r.logs.map(l=>`<tr><td>${esc(l.created_at)}</td><td>${esc(l.actor_username||'—')}</td><td>${esc(l.actor_email||'—')}</td><td>${chip(l.action)}</td><td>${esc(l.details||'')}</td></tr>`).join('')}</tbody></table></div>`}}catch(e){c.innerHTML=`<div class="error">${esc(e.message)}</div>`}}
+async function renderAdminResets(c){
+ const r=await api('/api/admin/password-resets?status=requested');
+ const g=await api('/api/admin/password-resets?status=link_generated');
+ const pending=r.requests||[],linked=g.requests||[];
+ c.innerHTML=`<div class="page-head"><div><h1>Password Resets</h1><p>Users who requested a reset. Generate a link and share it with them through a trusted channel — this portal does not send email.</p></div></div>
+ <div class="card"><h2>Pending Requests (${pending.length})</h2><table><thead><tr><th>Username</th><th>Email</th><th>Requested</th><th>Actions</th></tr></thead><tbody>${pending.map(x=>`<tr><td>${esc(x.current_username||x.username_snapshot)}</td><td>${esc(x.current_email||x.email_snapshot)}</td><td>${esc(x.requested_at)}</td><td><div class="actions"><button class="linkbtn" onclick="generateResetLink(${x.id})">Generate Reset Link</button><button class="smallbtn" onclick="cancelResetRequest(${x.id})">Cancel</button></div></td></tr>`).join('')||'<tr><td colspan="4">No pending requests.</td></tr>'}</tbody></table></div>
+ <div id="resetLinkOut"></div>
+ <div class="card"><h2>Links Awaiting Use (${linked.length})</h2><table><thead><tr><th>Username</th><th>Email</th><th>Link Generated</th><th>Expires</th><th>Actions</th></tr></thead><tbody>${linked.map(x=>`<tr><td>${esc(x.current_username||x.username_snapshot)}</td><td>${esc(x.current_email||x.email_snapshot)}</td><td>${esc(x.link_generated_at)}</td><td>${esc(x.expires_at)}</td><td><button class="smallbtn" onclick="cancelResetRequest(${x.id})">Cancel</button></td></tr>`).join('')||'<tr><td colspan="5">None.</td></tr>'}</tbody></table></div>`;
+}
+async function generateResetLink(requestId){try{const r=await api(`/api/admin/password-resets/${requestId}/generate-link`,{method:'POST'});$('resetLinkOut').innerHTML=`<div class="card" style="background:#f8fafc"><b>Reset Link</b><p class="hint">Copy this and share it with the user through a trusted channel. It expires ${esc(r.reset.expires_at)}.</p><input class="input" value="${esc(r.reset.reset_url)}" onclick="this.select()"></div>`;adminTab('resets')}catch(e){toast(e.message)}}
+async function cancelResetRequest(requestId){try{await api(`/api/admin/password-resets/${requestId}/cancel`,{method:'POST'});adminTab('resets')}catch(e){toast(e.message)}}
+function adminRunsTable(runs){return `<table><thead><tr><th>Run</th><th>Ran By</th><th>Email</th><th>When</th><th>Type</th><th>Status</th><th>Total</th><th>Passed</th><th>Failed</th><th>Actions</th></tr></thead><tbody>${runs.map(r=>`<tr><td>${esc(r.run_id)}</td><td>${esc(r.ran_by||r.username_snapshot||'')}</td><td>${esc(r.ran_by_email||r.email_snapshot||'')}</td><td>${esc(r.created_at)}</td><td>${esc(r.source_type)}</td><td>${chip(r.status)}</td><td>${r.total_files}</td><td>${r.passed_files}</td><td>${r.failed_files}</td><td><div class="actions"><button class="linkbtn" onclick="viewRun('${esc(r.run_id)}')">View Files</button><a class="linkbtn" href="/download-batch/${encodeURIComponent(r.run_id)}">Excel</a></div></td></tr>`).join('')||'<tr><td colspan="10">No runs.</td></tr>'}</tbody></table>`}
+async function setUserStatus(id,status){try{await api(`/api/admin/users/${id}/status`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});adminTab('users')}catch(e){toast(e.message)}}
+async function setUserRole(id,role){try{await api(`/api/admin/users/${id}/role`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({role})});adminTab('users')}catch(e){toast(e.message)}}
+async function createInvite(){try{const r=await api('/api/admin/invites',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:$('inviteEmail').value})});$('inviteOut').innerHTML=`<div class="card" style="background:#f8fafc"><b>Invite Link</b><p class="hint">Copy this and send it to the user.</p><input class="input" value="${esc(r.invite.invite_url)}" onclick="this.select()"></div>`}catch(e){toast(e.message)}}
+boot();
 </script>
 </body>
 </html>
