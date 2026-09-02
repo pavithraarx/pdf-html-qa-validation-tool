@@ -70,7 +70,7 @@ converted HTML and produces structured QA reports for review.
 <h2>Demo</h2>
 
 <p>
-See the complete PDF-to-HTML QA validation workflow in action.
+See the complete QA validation workflow in action.
 </p>
 
 <p>
