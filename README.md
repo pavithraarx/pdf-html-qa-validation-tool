@@ -25,6 +25,18 @@
 
 <h2>Overview</h2>
 
+<h2>Demo</h2>
+
+<p>
+  A short demonstration of the PDF-to-HTML QA validation workflow.
+</p>
+
+<p>
+  <a href="./demo/demo-video.mp4">
+    <strong>View Demo Video</strong>
+  </a>
+</p>
+
 <p>
 The <strong>PDF to HTML QA Validation Tool</strong> is a Flask-based web application
 that validates converted HTML documents against their original PDF sources.
